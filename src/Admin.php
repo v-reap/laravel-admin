@@ -250,7 +250,7 @@ class Admin
                 $router->resource('auth/menu', 'MenuController', ['except' => ['create']]);
                 $router->resource('auth/logs', 'LogController', ['only' => ['index', 'destroy']]);
                 $router->resource('tasks', 'TaskController');
-                $router->get('tasks/t/{id}', 'TaskController@index');
+//                $router->get('tasks/t/{id}', 'TaskController@index');
             });
 
             $router->any('test', 'TaskController@test');

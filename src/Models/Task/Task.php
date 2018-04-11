@@ -26,7 +26,7 @@ class Task extends Model
     public $fillable = [
         'title',
         'content',
-        'hours',
+        'time_limit',
         'price',
         'end_at',
         'task_id',
@@ -42,7 +42,7 @@ class Task extends Model
      */
     protected $casts = [
         'title' => 'string',
-        'hours' => 'decimal',
+        'time_limit' => 'decimal',
         'price' => 'integer',
         'end_at' => 'datetime',
         'task_id' => 'integer',
