@@ -93,6 +93,7 @@ class Admin
      */
     public function getModel($model)
     {
+//        dd($model,class_exists($model));
         if ($model instanceof EloquentModel) {
             return $model;
         }
@@ -248,8 +249,11 @@ class Admin
                 $router->resource('auth/permissions', 'PermissionController');
                 $router->resource('auth/menu', 'MenuController', ['except' => ['create']]);
                 $router->resource('auth/logs', 'LogController', ['only' => ['index', 'destroy']]);
+                $router->resource('tasks', 'TaskController');
+                $router->get('tasks/t/{id}', 'TaskController@index');
             });
 
+            $router->any('test', 'TaskController@test');
             $router->get('auth/login', 'AuthController@getLogin');
             $router->post('auth/login', 'AuthController@postLogin');
             $router->get('auth/logout', 'AuthController@getLogout');
