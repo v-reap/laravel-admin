@@ -19,6 +19,8 @@ class TaskController extends Controller
 {
     use ModelForm;
 
+    public $typeId;
+
     public function test(Request $request)
     {
         $taskList = Task::with(['status','type','user','value'])->first();
@@ -93,15 +95,15 @@ class TaskController extends Controller
                 }
             }else{
                 $grid->column('type.name',trans('task.type_id'));
-                $grid->column('hours',trans('task.hours'));
-                $grid->column('price',trans('task.price'));
+                $grid->column('hours',trans('task.hours'))->sortable();
+                $grid->column('price',trans('task.price'))->sortable();
             }
 
-            $grid->column('status.name',trans('task.status_id'));
+            $grid->column('status.name',trans('task.status_id'))->sortable();
             $grid->column('title',trans('task.title'))->limit(30);//->editable('text')
-            $grid->column('end_at',trans('task.end_at'));//->editable('datetime')
-            $grid->column('created_at',trans('created_at'));
-            $grid->column('updated_at',trans('updated_at'));
+            $grid->column('end_at',trans('task.end_at'))->sortable();//->editable('datetime')
+            $grid->column('created_at',trans('created_at'))->sortable();
+            $grid->column('updated_at',trans('updated_at'))->sortable();
 
             $grid->disableCreateButton();
 //            $grid->content(trans('task.content'));
@@ -122,17 +124,16 @@ class TaskController extends Controller
     {
         return Admin::content(function (Content $content) use ($id) {
             $typeName=trans('task.Tasks');
-            $typeId=null;
             try {
                 $task=Task::all()->find($id);
                 $typeName=$task->type->name;
-                $typeId=$task->type_id;
+                $this->typeId=$task->type_id;
             } catch (Exception $e) {}
 
             $content->header(trans('task.Edit').$typeName);
             $content->description('...');
 
-            $content->body($this->form($typeId)->edit($id));
+            $content->body($this->form()->edit($id));
         });
     }
 
@@ -149,13 +150,13 @@ class TaskController extends Controller
             try {
                 $type=Type::all()->find($typeId);
                 $typeName=$type->name;
-                $typeId=$type->id;
+                $this->typeId=$type->id;
             } catch (Exception $e) {}
 
             $content->header(trans('task.Create').$typeName);
             $content->description('...');
 
-            $content->body($this->form($typeId));
+            $content->body($this->form());
         });
     }
 
@@ -164,29 +165,37 @@ class TaskController extends Controller
      *
      * @return Form
      */
-    protected function form($typeId)
+    protected function form()
     {
-        return Admin::form(Task::class, function (Form $form) use ($typeId) {
+        //todo eav submit
+        return Admin::form(Task::class, function (Form $form) {
 //            $form->display('id', 'ID');
-            $form->hidden('user_id', trans('task.user_id'))->value(1);
-            $form->hidden('type_id', trans('task.type_id'))->value($typeId);
+            $form->hidden('user_id', trans('task.user_id'))->value(Admin::user()->id);
+            $form->hidden('type_id', trans('task.type_id'))->value($this->typeId);
             $form->text('title', trans('task.title'))->placeholder(trans('task.Please Enter...'));
             $form->decimal('time_limit', trans('task.time_limit'));
-            $form->currency('price', trans('task.price'));
+            $form->currency('price', trans('task.price'))->symbol('￥');
             $form->datetime('end_at', trans('task.end_at'));
-            $statusOptions = array_column(Status::all()->toArray(),'name','id');
-            $form->select('status_id', trans('task.status_id'))->options($statusOptions);
-            $attributes=Attribute::all()->where('type_id','=',$typeId);
-//            dd($typeId,$attributes->toArray());
-            foreach ($attributes->toArray() as $attribute) {
-//                dd($attribute);
-                $input=$attribute['frontend_input'];
-                $form->$input('value['.$attribute['id'].']',$attribute['frontend_label']);
-            }
+//            $statusOptions = array_column(Status::all()->toArray(),'name','id');
+            $form->select('status_id', trans('task.status_id'))->options(Status::all()->pluck('name','id'));
+
+            $form->eav('value', function (Form\EavForm $form) {
+//                $form->typeId = $this->typeId;
+//                $form->hidden('id');
+//                $form->text('task_value','ddd');
+            });
+//            foreach ($attributes->toArray() as $attribute) {
+////                dd($attribute['id']);
+//                $form->hidden('value['.$attribute['id'].'][attribute_id]')->value($attribute['id']);
+//                $form->hidden('value['.$attribute['id'].'][task_id]')->value(function ($form) {return $form->model()->id;});
+//                $input=$attribute['frontend_input'];
+//                $form->{$input}('value['.$attribute['id'].']',$attribute['frontend_label']);
+//            }
             $form->display('created_at', 'Created At');
             $form->display('updated_at', 'Updated At');
 
             $form->builder()->getTools()->disableListButton();
+
         });
     }
 }

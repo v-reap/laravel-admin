@@ -58,7 +58,6 @@ class Task extends Model
      */
     public static $rules = [
         'title' => 'required',
-        'task_id' => 'required',
         'user_id' => 'required',
         'status_id' => 'required',
         'type_id' => 'required',

@@ -501,7 +501,8 @@ class Form
     public function update($id, $data = null)
     {
         $data = ($data) ?: Input::all();
-
+        \Log::debug($data);
+dd($data);
         $isEditable = $this->isEditable($data);
 
         $data = $this->handleEditable($data);
@@ -1266,6 +1267,7 @@ class Form
             'multipleImage'  => \Encore\Admin\Form\Field\MultipleImage::class,
             'captcha'        => \Encore\Admin\Form\Field\Captcha::class,
             'listbox'        => \Encore\Admin\Form\Field\Listbox::class,
+            'eav'            => \Encore\Admin\Form\Field\Eav::class,
         ];
 
         foreach ($map as $abstract => $class) {
