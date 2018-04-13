@@ -274,11 +274,14 @@ class Eav extends Field
         $form->hidden($this->getKeyName());
         $form->hidden(EavForm::REMOVE_FLAG_NAME)->default(0)->addElementClass(EavForm::REMOVE_FLAG_CLASS);
 
+        $form->hidden('task_id')->value($modelId);
         if($attribute){
             $form->hidden('attribute_id')->value($attribute['id']);
-            $form->hidden('task_id')->value($modelId);
             $input=$attribute['frontend_input'];
             $form->{$input}('task_value',$attribute['frontend_label'])->setElementClass('attr'.$attribute['id']);
+        } else {
+            $form->hidden('attribute_id');
+            $form->text('task_value');
         }
 
         return $form;

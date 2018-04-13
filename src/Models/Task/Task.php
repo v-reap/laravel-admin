@@ -2,6 +2,7 @@
 
 namespace Encore\Admin\Models\Task;
 
+use Encore\Admin\Auth\Database\Administrator;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 //use Illuminate\Support\Facades\DB;
@@ -19,7 +20,7 @@ class Task extends Model
 {
     use SoftDeletes;
 
-    public $table = 'tasks';
+    public $atts;
 
     protected $dates = ['deleted_at'];
 
@@ -64,12 +65,25 @@ class Task extends Model
         'end_at' => 'date_format:"Y-m-d H:i:s"',
     ];
 
+    public function __construct(array $attributes = [])
+    {
+        parent::__construct($attributes);
+    }
+
+    public function getAttrs()
+    {
+        if (!$this->atts){
+            $this->atts = Attribute::where('type_id','=',$this->attributes['type_id'])->get();
+        }
+        return $this->atts;
+    }
+
     /**
      * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
      **/
     public function user()
     {
-        return $this->belongsTo(\Encore\Admin\Auth\Database\Administrator::class, 'user_id', 'id');
+        return $this->belongsTo(Administrator::class, 'user_id', 'id');
     }
 
     /**
@@ -77,7 +91,7 @@ class Task extends Model
      **/
     public function status()
     {
-        return $this->belongsTo(\Encore\Admin\Models\Task\Status::class, 'status_id', 'id');
+        return $this->belongsTo(Status::class, 'status_id', 'id');
     }
 
     /**
@@ -85,12 +99,47 @@ class Task extends Model
      **/
     public function type()
     {
-        return $this->belongsTo(\Encore\Admin\Models\Task\Type::class, 'type_id', 'id');
+        return $this->belongsTo(Type::class, 'type_id', 'id');
     }
 
     public function value()
     {
-        return $this->hasMany(\Encore\Admin\Models\Task\Value::class, 'task_id', 'id');
+        return $this->hasMany(Value::class, 'task_id', 'id');
+    }
+
+    public function isEavAttrs($key)
+    {
+        return isset($this->attributes['type_id'])
+                        && $this->attributes['type_id']
+                        && $this->getAttrs()
+                        && !$this->getAttribute($key);
+    }
+
+    public function __get($key)
+    {
+        if($this->isEavAttrs($key)){
+            $attr = $this->atts ? $this->atts->firstWhere('code','=',$key) : null;
+            $attrArray = $attr ? $attr->toArray() : [];
+            if ($attrArray) {
+                $value = Value::where('task_id','=',$this->attributes['id'])->where('attribute_id','=',$attrArray['id'])->first();
+                $this->attributes[$key] = $value ? $value->task_value : null;
+            }
+        }
+
+        return $this->getAttribute($key);
+    }
+
+    public function __set($key, $value)
+    {
+        if($this->isEavAttrs($key)){
+            $attr = $this->atts ? $this->atts->firstWhere('code','=',$key) : null;
+            $attrArray = $attr ? $attr->toArray() : [];
+            if ($attrArray) {
+                $value = Value::updateOrCreate(['task_id'=>$this->attributes['id'],'attribute_id'=>$attrArray['id']],['task_value'=>$value])->first();
+                $this->attributes[$key] = $value ? $value->task_value : null;
+            }
+        }
+        $this->setAttribute($key, $value);
     }
 
 //    protected static function boot()

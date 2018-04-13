@@ -501,8 +501,8 @@ class Form
     public function update($id, $data = null)
     {
         $data = ($data) ?: Input::all();
-        \Log::debug($data);
-dd($data);
+//        \Log::debug($data);
+
         $isEditable = $this->isEditable($data);
 
         $data = $this->handleEditable($data);

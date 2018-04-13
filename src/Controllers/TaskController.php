@@ -23,24 +23,11 @@ class TaskController extends Controller
 
     public function test(Request $request)
     {
-        $taskList = Task::with(['status','type','user','value'])->first();
-        $data = ["tasktype_id" => "2",
-            "title" => "主题",
-            "taskstatus_id" => "1",
-            "end_at" => "2018-04-10 12:10:28",
-            "hours" => "0.5",
-            "attribute" => [
-                534 => "SKU",
-                535 => "品牌",
-                536 => "产品",
-                538 => "自营",
-                539 => "样品",
-                540 => "2018-04-10",
-            ],
-            "content" => "23213<audio controls=\"controls\" style=\"display: none;\"></audio>",
-        ];
         \DB::enableQueryLog();
-        dd($taskList->toArray(),\DB::getQueryLog());
+        $taskList = Task::find(42325);//with(['status','type','user','value'])
+//        dd($this->getAttrs()->toArray());
+        $updateCre=\Encore\Admin\Models\Task\Value::updateOrCreate(['task_id'=>42314,'attribute_id'=>539],['task_value'=>1111111111111]);
+        dd($updateCre->toArray(),$taskList->toArray(),\DB::getQueryLog());
     }
 
     /**
@@ -74,6 +61,7 @@ class TaskController extends Controller
     {
         return Admin::grid(Task::class, function (Grid $grid) use ($id) {
 //            $grid->id('ID')->sortable();
+//            $grid->column('text19','SKU');
             if ($id){
                 $attributes=Attribute::all()->where('type_id','=',$id);
                 $grid->model()->where('type_id','=',$id);
@@ -184,12 +172,15 @@ class TaskController extends Controller
 //                $form->hidden('id');
 //                $form->text('task_value','ddd');
             });
+//            $attributes = \Encore\Admin\Models\Task\Attribute::where('type_id','=',$this->typeId)->get();
+//            $attributes = $form->model()->getAttrs();
+//            dd($attributes);
 //            foreach ($attributes->toArray() as $attribute) {
 ////                dd($attribute['id']);
-//                $form->hidden('value['.$attribute['id'].'][attribute_id]')->value($attribute['id']);
-//                $form->hidden('value['.$attribute['id'].'][task_id]')->value(function ($form) {return $form->model()->id;});
+////                $form->hidden('value['.$attribute['id'].'][attribute_id]')->value($attribute['id']);
+////                $form->hidden('value['.$attribute['id'].'][task_id]')->value(function ($form) {return $form->model()->id;});
 //                $input=$attribute['frontend_input'];
-//                $form->{$input}('value['.$attribute['id'].']',$attribute['frontend_label']);
+//                $form->{$input}($attribute['code'],$attribute['frontend_label']);
 //            }
             $form->display('created_at', 'Created At');
             $form->display('updated_at', 'Updated At');
