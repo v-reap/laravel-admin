@@ -9,9 +9,11 @@ use Encore\Admin\Form\Field;
 use Encore\Admin\Form\Field\File;
 use Encore\Admin\Form\Row;
 use Encore\Admin\Form\Tab;
+use Encore\Admin\Models\Task\Value;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Input;
@@ -332,17 +334,7 @@ class Form
             return $response;
         }
 
-        DB::transaction(function () {
-            $inserts = $this->prepareInsert($this->updates);
-
-            foreach ($inserts as $column => $value) {
-                $this->model->setAttribute($column, $value);
-            }
-
-            $this->model->save();
-
-            $this->updateRelation($this->relations);
-        });
+        $this->storeDB($data);
 
         if (($response = $this->complete($this->saved)) instanceof Response) {
             return $response;
@@ -353,6 +345,21 @@ class Form
         }
 
         return $this->redirectAfterStore();
+    }
+
+    protected function storeDB($data)
+    {
+        DB::transaction(function () use ($data) {
+            $inserts = $this->prepareInsert($this->updates);
+
+            foreach ($inserts as $column => $value) {
+                $this->model->setAttribute($column, $value);
+            }
+
+            $this->model->save();
+            $this->updateRelation($this->relations);
+            $this->updateEAV($data);
+        });
     }
 
     /**
@@ -534,7 +541,7 @@ class Form
             return $response;
         }
 
-        DB::transaction(function () {
+        DB::transaction(function () use ($data) {
             $updates = $this->prepareUpdate($this->updates);
 
             foreach ($updates as $column => $value) {
@@ -545,6 +552,7 @@ class Form
             $this->model->save();
 
             $this->updateRelation($this->relations);
+            $this->updateEAV($data);
         });
 
         if (($result = $this->complete($this->saved)) instanceof Response) {
@@ -556,6 +564,37 @@ class Form
         }
 
         return $this->redirectAfterUpdate();
+    }
+
+    protected function updateEAV($data)
+    {
+        if($this->hasValue()){
+            $taskId=$this->model->id;
+
+            foreach($data['value'] as $value){
+                $value['task_id']=$taskId;
+                $result = $this->prepareEAVUpdate($value);//isset($value['task_value']) ? $value['task_value'] : null;
+                $attrs=array_diff_key($value,['task_value'=>0]);
+                if ($result){
+                    Value::updateOrCreate($attrs,['task_value'=>$result]);
+                }
+            }
+        }
+    }
+
+    protected function prepareEAVUpdate(array $updates)
+    {
+        $field = $this->builder->field('value['.$updates['attribute_id'].'][task_value]');
+        if($field && isset($updates['task_value'])){
+            return $field->prepare($updates['task_value']);
+        }else{
+            return null;
+        }
+    }
+
+    public function hasValue()
+    {
+        return get_class($this->model)=='Encore\Admin\Models\Task\Task';
     }
 
     /**
@@ -745,8 +784,7 @@ class Form
         foreach ($this->builder->fields() as $field) {
             $columns = $field->column();
 
-            // If column not in input array data, then continue.
-            if (!array_has($updates, $columns)) {
+            if (!array_has($updates, $columns)) {// && !$hasValue If column not in input array data, then continue.
                 continue;
             }
 
