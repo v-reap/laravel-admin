@@ -5,8 +5,8 @@ namespace Encore\Admin\Models\Task;
 use Encore\Admin\Auth\Database\Administrator;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Builder;
 //use Illuminate\Support\Facades\DB;
-//use Illuminate\Database\Eloquent\Builder;
 //use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 //use Illuminate\Http\Request;
 //use Illuminate\Support\Str;
@@ -70,14 +70,6 @@ class Task extends Model
         parent::__construct($attributes);
     }
 
-    public function getAttrs()
-    {
-        if (!$this->atts){
-            $this->atts = Attribute::where('type_id','=',$this->attributes['type_id'])->get();
-        }
-        return $this->atts;
-    }
-
     /**
      * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
      **/
@@ -107,40 +99,48 @@ class Task extends Model
         return $this->hasMany(Value::class, 'task_id', 'id');
     }
 
-    public function isEavAttrs($key)
-    {
-        return isset($this->attributes['type_id'])
-                        && $this->attributes['type_id']
-                        && $this->getAttrs()
-                        && !$this->getAttribute($key);
-    }
+//    public function getAttrs()
+//    {
+//        if (!$this->atts){
+//            $this->atts = Attribute::where('type_id','=',$this->attributes['type_id'])->get();
+//        }
+//        return $this->atts;
+//    }
 
-    public function __get($key)
-    {
-        if($this->isEavAttrs($key)){
-            $attr = $this->atts ? $this->atts->firstWhere('code','=',$key) : null;
-            $attrArray = $attr ? $attr->toArray() : [];
-            if ($attrArray) {
-                $value = Value::where('task_id','=',$this->attributes['id'])->where('attribute_id','=',$attrArray['id'])->first();
-                $this->attributes[$key] = $value ? $value->task_value : null;
-            }
-        }
+//    public function isEavAttrs($key)
+//    {
+//        return isset($this->attributes['type_id'])
+//                        && $this->attributes['type_id']
+//                        && $this->getAttrs()
+//                        && !$this->getAttribute($key);
+//    }
 
-        return $this->getAttribute($key);
-    }
-
-    public function __set($key, $value)
-    {
-        if($this->isEavAttrs($key)){
-            $attr = $this->atts ? $this->atts->firstWhere('code','=',$key) : null;
-            $attrArray = $attr ? $attr->toArray() : [];
-            if ($attrArray) {
-                $value = Value::updateOrCreate(['task_id'=>$this->attributes['id'],'attribute_id'=>$attrArray['id']],['task_value'=>$value])->first();
-                $this->attributes[$key] = $value ? $value->task_value : null;
-            }
-        }
-        $this->setAttribute($key, $value);
-    }
+//    public function __get($key)
+//    {
+//        if($this->isEavAttrs($key)){
+//            $attr = $this->atts ? $this->atts->firstWhere('code','=',$key) : null;
+//            $attrArray = $attr ? $attr->toArray() : [];
+//            if ($attrArray) {
+//                $value = Value::where('task_id','=',$this->attributes['id'])->where('attribute_id','=',$attrArray['id'])->first();
+//                $this->attributes[$key] = $value ? $value->task_value : null;
+//            }
+//        }
+//
+//        return $this->getAttribute($key);
+//    }
+//
+//    public function __set($key, $value)
+//    {
+//        if($this->isEavAttrs($key)){
+//            $attr = $this->atts ? $this->atts->firstWhere('code','=',$key) : null;
+//            $attrArray = $attr ? $attr->toArray() : [];
+//            if ($attrArray) {
+//                $value = Value::updateOrCreate(['task_id'=>$this->attributes['id'],'attribute_id'=>$attrArray['id']],['task_value'=>$value])->first();
+//                $this->attributes[$key] = $value ? $value->task_value : null;
+//            }
+//        }
+//        $this->setAttribute($key, $value);
+//    }
 
 //    protected static function boot()
 //    {

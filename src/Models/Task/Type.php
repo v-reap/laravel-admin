@@ -27,7 +27,7 @@ class Type extends Model
         'comment_required',
         'user_id',
         'type_id',
-        'bentity_id'  //huayan
+        'bentity_id'
     ];
 
     /**
@@ -75,6 +75,11 @@ class Type extends Model
     public function task()
     {
         return $this->hasMany(\Encore\Admin\Models\Task\Task::class, 'type_id', 'id');
+    }
+
+    public function attribute()
+    {
+        return $this->hasMany(\Encore\Admin\Models\Task\Attribute::class, 'type_id', 'id');
     }
 
     protected static function boot()

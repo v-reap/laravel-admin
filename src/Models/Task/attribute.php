@@ -24,6 +24,7 @@ class Attribute extends Model
         'frontend_label',
         'frontend_input',
         'frontend_size',
+        'rules',
         'not_list',
         'is_required',
         'is_unique',
@@ -45,13 +46,14 @@ class Attribute extends Model
         'frontend_label' => 'string',
         'frontend_input' => 'string',
         'frontend_size' => 'integer',
+        'rules' => 'string',
         'not_list' => 'integer',
         'is_required' => 'integer',
         'is_unique' => 'integer',
         'is_report' => 'integer',
         'option' => 'string',
         'orderby' => 'integer',
-        'user_id' => 'integer',
+        'permission_id' => 'integer',
         'note' => 'string'
     ];
 
