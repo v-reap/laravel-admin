@@ -3,11 +3,12 @@
 namespace Encore\Admin\Auth\Database;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Role extends Model
 {
-    protected $fillable = ['name', 'slug'];
+    protected $fillable = ['name', 'slug', 'leader_id'];
 
     /**
      * Create a new Eloquent model instance.
@@ -37,6 +38,17 @@ class Role extends Model
         $relatedModel = config('admin.database.users_model');
 
         return $this->belongsToMany($relatedModel, $pivotTable, 'role_id', 'user_id');
+    }
+
+    /**
+     * A role belongs to one leader.
+     *
+     * @return BelongsToMany
+     */
+    public function leader() : BelongsTo
+    {
+        $relatedModel = config('admin.database.users_model');
+        return $this->belongsTo($relatedModel, 'leader_id', 'id');
     }
 
     /**

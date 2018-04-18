@@ -2,6 +2,7 @@
 
 namespace Encore\Admin\Controllers;
 
+use Encore\Admin\Auth\Database\Administrator;
 use Encore\Admin\Auth\Database\Permission;
 use Encore\Admin\Auth\Database\Role;
 use Encore\Admin\Facades\Admin;
@@ -69,6 +70,7 @@ class RoleController extends Controller
             $grid->id('ID')->sortable();
             $grid->slug(trans('admin.slug'));
             $grid->name(trans('admin.name'));
+            $grid->column('leader.name',trans('task.leader'));
 
             $grid->permissions(trans('admin.permission'))->pluck('name')->label();
 
@@ -101,6 +103,7 @@ class RoleController extends Controller
 
             $form->text('slug', trans('admin.slug'))->rules('required');
             $form->text('name', trans('admin.name'))->rules('required');
+            $form->select('leader.name',trans('task.leader'))->options(Administrator::all()->pluck('name', 'id'));
             $form->listbox('permissions', trans('admin.permissions'))->options(Permission::all()->pluck('name', 'id'));
 
             $form->display('created_at', trans('admin.created_at'));

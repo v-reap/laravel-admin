@@ -21,13 +21,11 @@ class Type extends Model
         'name',
         'color',
         'assigned_to',
-        'multi_assigned',
-        'project_required',
-        'product_required',
-        'comment_required',
-        'user_id',
-        'type_id',
-        'bentity_id'
+        'root_id',
+        'last_id',
+        'next_id',
+        'rules',
+        'user_id'
     ];
 
     /**
@@ -39,12 +37,11 @@ class Type extends Model
         'name' => 'string',
         'color' => 'string',
         'assigned_to' => 'integer',
-        'multi_assigned' => 'integer',
-        'project_required' => 'integer',
-        'product_required' => 'integer',
-        'comment_required' => 'integer',
+        'root_id' => 'integer',
+        'last_id' => 'integer',
+        'next_id' => 'integer',
+        'rules' => 'string',
         'user_id' => 'integer',
-        'type_id'=> 'string'
     ];
 
     /**
@@ -75,6 +72,21 @@ class Type extends Model
     public function task()
     {
         return $this->hasMany(\Encore\Admin\Models\Task\Task::class, 'type_id', 'id');
+    }
+
+    public function root()
+    {
+        return $this->belongsTo(static::class, 'root_id', 'id');
+    }
+
+    public function last()
+    {
+        return $this->belongsTo(static::class, 'last_id', 'id');
+    }
+
+    public function next()
+    {
+        return $this->belongsTo(static::class, 'next_id', 'id');
     }
 
     public function attribute()

@@ -4,6 +4,7 @@ namespace Encore\Admin;
 
 use Closure;
 use Encore\Admin\Exception\Handler;
+use Encore\Admin\Facades\Admin;
 use Encore\Admin\Grid\Column;
 use Encore\Admin\Grid\Displayers\Actions;
 use Encore\Admin\Grid\Displayers\RowSelector;
@@ -626,6 +627,20 @@ class Grid
     public function renderHeaderTools()
     {
         return $this->tools->render();
+    }
+
+    /**
+     * jack - 审批等活动专用
+     *
+     * @param $data
+     * @return string
+     */
+    public function renderActionTools()
+    {
+        if (get_class($this->model)=='Encore\Admin\Models\Task\Task'){
+//            Admin::us
+            return view('admin::grid.action',[])->render();
+        }
     }
 
     /**

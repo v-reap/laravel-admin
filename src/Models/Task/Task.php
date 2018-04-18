@@ -3,6 +3,7 @@
 namespace Encore\Admin\Models\Task;
 
 use Encore\Admin\Auth\Database\Administrator;
+use Encore\Admin\Facades\Admin;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Builder;
@@ -142,12 +143,19 @@ class Task extends Model
 //        $this->setAttribute($key, $value);
 //    }
 
-//    protected static function boot()
-//    {
-//        parent::boot();
-//
-//        static::addGlobalScope('user_id', function(Builder $builder) {
-//                $builder->orderBy('created_at', 'desc');
-//        });
-//    }
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::addGlobalScope('user_id', function(Builder $builder) {
+//            $user = Admin::user();
+//            if(!$user->isAdministrator()){
+//                $builder->where('user_id', '=', $user->id);
+//            }
+//            else if (1){
+//                $builder->whereIn('user_id', $user);
+//            }
+            $builder->orderBy('created_at', 'desc');
+        });
+    }
 }

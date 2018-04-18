@@ -35,21 +35,33 @@ class TaskController extends Controller
         }
         if (isset(\Route::current()->parameters()['task'])){
             $this->task=$task->find(\Route::current()->parameters()['task']);
-            $this->type=$this->task->type;
+            $this->type=$this->task ? $this->task->type : null;
         }
     }
 
     public function test(Request $request)
     {
 
-        $result = array();
-        preg_match_all("/\[([a-z0-9_]+)\]/","value[322][task_value]", $result);
-        dd($result[1]);
 //        \DB::enableQueryLog();
 //        $taskList = Task::find(42325);//with(['status','type','user','value'])
 ////        dd($this->getAttrs()->toArray());
 //        $updateCre=\Encore\Admin\Models\Task\Value::updateOrCreate(['task_id'=>42314,'attribute_id'=>539],['task_value'=>1111111111111]);
 //        dd($updateCre->toArray(),$taskList->toArray(),\DB::getQueryLog());
+    }
+
+    public function workflow($id)
+    {
+        $ids = explode(',', $id);
+
+        foreach ($ids as $id) {
+            if (empty($id)) {
+                continue;
+            }
+        }
+        return response()->json([
+            'status'  => true,
+            'message' => trans('task.mmm'),
+        ]);
     }
 
     /**
@@ -91,6 +103,7 @@ class TaskController extends Controller
                             $val = (array_column($this->value->toArray(),'task_value','attribute_id'));
                             $data = isset($val[$attribute->id])?$val[$attribute->id]:'';
                             if ($attribute->frontend_input=='image'){
+                                $data=substr($data,0,6)=='images' ? '/uploads/'.$data : $data;
                                 return '<img src="'.$data.'" width=100px />';
                             }elseif ($attribute->frontend_input=='file'){
                                 return $data ? '<a href="/uploads/'.$data.'" target="_blank" ><i class="fa fa-download"></i></a>':'';
@@ -122,7 +135,17 @@ class TaskController extends Controller
                 $grid->actions(function ($actions) {
                     $actions->disableDelete();
                 });
+                $grid->tools(function ($tools) {
+                    $tools->batch(function ($batch) {
+                        $batch->disableDelete();
+                    });
+                });
             }
+            $grid->tools(function ($tools) {
+                $tools->batch(function ($batch) {
+                    $batch->add($this->type->next->name, new Grid\Tools\BatchWorkflow($this->type->id));
+                });
+            });
 //            $grid->content(trans('task.content'));
 //            $grid->task_id(trans('task.task_id'));
 //            $grid->user_id(trans('task.user_id'));

@@ -16,6 +16,7 @@
     </div>
     <!-- /.box-header -->
     <div class="box-body table-responsive no-padding">
+        {!! $grid->renderActionTools() !!}
         <table class="table table-hover">
             <tr>
                 @foreach($grid->columns() as $column)
