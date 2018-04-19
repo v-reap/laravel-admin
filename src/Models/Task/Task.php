@@ -31,7 +31,9 @@ class Task extends Model
         'time_limit',
         'price',
         'end_at',
-        'task_id',
+        'root_id',
+        'next_id',
+        'last_id',
         'user_id',
         'status_id',
         'type_id'
@@ -47,7 +49,9 @@ class Task extends Model
         'time_limit' => 'decimal',
         'price' => 'integer',
         'end_at' => 'datetime',
-        'task_id' => 'integer',
+        'root_id' => 'integer',
+        'next_id' => 'integer',
+        'last_id' => 'integer',
         'user_id' => 'integer',
         'status_id' => 'integer',
         'type_id' => 'integer'
@@ -98,6 +102,21 @@ class Task extends Model
     public function value()
     {
         return $this->hasMany(Value::class, 'task_id', 'id');
+    }
+
+    public function root()
+    {
+        return $this->belongsTo(static::class, 'root_id', 'id');
+    }
+
+    public function last()
+    {
+        return $this->belongsTo(static::class, 'last_id', 'id');
+    }
+
+    public function next()
+    {
+        return $this->belongsTo(static::class, 'next_id', 'id');
     }
 
 //    public function getAttrs()

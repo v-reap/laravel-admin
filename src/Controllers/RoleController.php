@@ -103,7 +103,7 @@ class RoleController extends Controller
 
             $form->text('slug', trans('admin.slug'))->rules('required');
             $form->text('name', trans('admin.name'))->rules('required');
-            $form->select('leader.name',trans('task.leader'))->options(Administrator::all()->pluck('name', 'id'));
+            $form->select('leader_id',trans('task.leader'))->options(Administrator::all()->pluck('name', 'id'));
             $form->listbox('permissions', trans('admin.permissions'))->options(Permission::all()->pluck('name', 'id'));
 
             $form->display('created_at', trans('admin.created_at'));

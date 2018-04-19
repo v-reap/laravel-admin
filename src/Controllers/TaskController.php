@@ -41,7 +41,16 @@ class TaskController extends Controller
 
     public function test(Request $request)
     {
+        $task = Task::find(42337);
 
+//        $newTask = Task::create(["title" => '2222222222222222',
+//            "user_id" => $task->user_id,
+//            "status_id" => 1,
+//            "type_id" => $task->type->next_id,
+//            "root_id" => $task->id,
+//            "last_id" => $task->id,
+//        ]);
+        dd($task->next->root->toArray());
 //        \DB::enableQueryLog();
 //        $taskList = Task::find(42325);//with(['status','type','user','value'])
 ////        dd($this->getAttrs()->toArray());
@@ -49,19 +58,62 @@ class TaskController extends Controller
 //        dd($updateCre->toArray(),$taskList->toArray(),\DB::getQueryLog());
     }
 
-    public function workflow($id)
+    public function workflow($id, Request $request)
     {
+        $input = $request->all();
+//        \Log::debug($input);
+        $title = isset($input['title']) ? $input['title'] : $id;
+        if(!isset($input['assignableUser'])){
+            return response()->json([
+                'status'  => false,
+                'message' => trans('task.Action').trans('task.Error').'! '.trans('task.No assignable User Selected!'),
+            ]);
+        }
+        $user_id = $input['assignableUser'];
+        $complateTasks = [];
         $ids = explode(',', $id);
-
-        foreach ($ids as $id) {
-            if (empty($id)) {
+        $tasks = Task::find($ids);
+        foreach ($tasks as $task) {
+            if ($task->next && $task->next->status_id==5){
+                $complateTasks[]=$task->next->id;
                 continue;
             }
+            \DB::beginTransaction();
+            try {
+                $newTask = Task::updateOrCreate(
+                    ['id'=>$task->next_id],
+                    ["title" => $title,
+                    "user_id" => $user_id,
+                    "status_id" => 1,
+                    "type_id" => $task->type->next_id,
+                    "root_id" => $task->root_id ? $task->root_id : $task->id,
+                    "last_id" => $task->id,
+                    ]);
+                $task->next_id=$newTask->id;
+                $task->save();
+            } catch (Exception $e) {
+                \DB::rollback();
+                \Log::error($e);
+                return response()->json([
+                    'status'  => false,
+                    'message' => trans('task.Action').trans('task.Error').'! ',
+                ]);
+            }
+            \DB::commit();
         }
-        return response()->json([
-            'status'  => true,
-            'message' => trans('task.mmm'),
-        ]);
+
+        if ($complateTasks){
+            return response()->json([
+                'status'  => false,
+                'message' => trans('task.The following tasks have submited with Complated status which have been ignore:')
+                    .implode(', ',$complateTasks).'. ',
+            ]);
+        }else{
+            return response()->json([
+                'status'  => true,
+                'message' => trans('task.Action').trans('task.Success').'! ',
+            ]);
+        }
     }
 
     /**
@@ -92,8 +144,7 @@ class TaskController extends Controller
     protected function grid()
     {
         return Admin::grid(Task::class, function (Grid $grid) {
-//            $grid->id('ID')->sortable();
-//            $grid->column('text19','SKU');
+            $grid->id('ID')->sortable();
             if ($this->type && $this->type->id){
                 $attributes=Attribute::all()->where('type_id','=',$this->type->id);
                 $grid->model()->where('type_id','=',$this->type->id);
@@ -146,6 +197,9 @@ class TaskController extends Controller
                     $batch->add($this->type->next->name, new Grid\Tools\BatchWorkflow($this->type->id));
                 });
             });
+
+//            $assignableUser = Admin::user()->roles->firstWhere('leader_id','=',Admin::user()->leader_id);
+            $grid->setActionAttrs($this->type->next->name,Admin::user()->assignableUser(),$this->type->assigned_to);
 //            $grid->content(trans('task.content'));
 //            $grid->task_id(trans('task.task_id'));
 //            $grid->user_id(trans('task.user_id'));

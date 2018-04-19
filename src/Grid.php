@@ -630,20 +630,6 @@ class Grid
     }
 
     /**
-     * jack - 审批等活动专用
-     *
-     * @param $data
-     * @return string
-     */
-    public function renderActionTools()
-    {
-        if (get_class($this->model)=='Encore\Admin\Models\Task\Task'){
-//            Admin::us
-            return view('admin::grid.action',[])->render();
-        }
-    }
-
-    /**
      * Set exporter driver for Grid to export.
      *
      * @param $exporter
@@ -1007,5 +993,26 @@ class Grid
     public function __toString()
     {
         return $this->render();
+    }
+
+    public $actionAttrs = false;
+
+    /**
+     * jack - 审批等活动专用
+     *
+     * @param $data
+     * @return string
+     */
+    public function renderActionTools()
+    {
+        $action = $this->actionAttrs;
+        if ($action){
+            return view('admin::grid.action',compact('action'))->render();
+        }
+    }
+
+    public function setActionAttrs($title, $assignableUser, $assigned_to)
+    {
+        $this->actionAttrs = ['title'=>$title, 'assignableUser'=>$assignableUser, 'assigned_to'=>$assigned_to];
     }
 }

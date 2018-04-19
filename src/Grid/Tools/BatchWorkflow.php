@@ -16,49 +16,57 @@ class BatchWorkflow extends BatchAction
      */
     public function script()
     {
+        $title = trans('task.Batch').trans('task.Action');
+        $confirm = trans('task.Confirmed');
+        $cancel = trans('task.Cancel');
         return <<<EOT
 $('{$this->getElementClass()}').on('click', function() {
     var id = selectedRows().join();
-
+    if(id){
+        $('.countSelect').html('<i class="fa fa-check-square-o"></i> '+selectedRows().length);
+        $('.title').val($('.title').attr('basevalue')+selectedRows().join(', '));
+        $('.assign_to').removeClass('hidden');
+    }
 });
+
+$('.assign-submit').on('click', function() {
+    var id = selectedRows().join();
+    swal({
+      title: "$title",
+      text: $('.title').attr('basevalue')+selectedRows().join(', '),
+      type: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#DD6B55",
+      confirmButtonText: "$confirm",
+      closeOnConfirm: false,
+      cancelButtonText: "$cancel"
+    },
+    function(){
+        $.ajax({
+            method: 'post',
+            url: '{$this->resource}/workflow/' + id,
+            data: {
+            _method:'put',
+                type:'{$this->action}',
+                title:$('.title').val(),
+                assignableUser:$('.assignableUser').val(),
+                _token:'{$this->getToken()}'
+            },
+            success: function (data) {
+            $.pjax.reload('#pjax-container');
+            if (typeof data === 'object') {
+                if (data.status) {
+                    swal(data.message, '', 'success');
+                } else {
+                    swal(data.message, '', 'error');
+                }
+            }
+            }
+        });
+    });
+});
+
 
 EOT;
     }
 }
-
-
-//var html ='<select class="form-control select2-user" name="assigned_to" ></select>';
-//swal({
-//        title: "Messaggio",
-//        html: html,
-//        confirmButtonColor: '#26C281',
-//        confirmButtonText: 'Salva',
-//        showCancelButton: true,
-//        cancelButtonText: 'Chiudi',
-//        cancelButtonColor: '#EF4836',
-//        focusConfirm: false,
-//        onOpen: function () {
-//    $('.select2-user').select2();
-//},
-//    },
-//    function(){
-//        $.ajax({
-//            method: 'post',
-//            url: '{$this->resource}/workflow/' + id,
-//            data: {
-//            _method:'put',
-//                type:'{$this->action}',
-//                _token:'{$this->getToken()}'
-//            },
-//            success: function (data) {
-//            $.pjax.reload('#pjax-container');
-//            if (typeof data === 'object') {
-//                if (data.status) {
-//                    swal(data.message, '', 'success');
-//                } else {
-//                    swal(data.message, '', 'error');
-//                }
-//            }
-//            }
-//        });
-//    });

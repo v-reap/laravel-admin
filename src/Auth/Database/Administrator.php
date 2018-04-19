@@ -16,7 +16,7 @@ class Administrator extends Model implements AuthenticatableContract
 {
     use Authenticatable, AdminBuilder, HasPermissions;
 
-    protected $fillable = ['username', 'password', 'name', 'tel', 'avatar'];
+    protected $fillable = ['username', 'password', 'name', 'tel', 'leader_id', 'avatar'];
 
     /**
      * Create a new Eloquent model instance.
@@ -32,5 +32,22 @@ class Administrator extends Model implements AuthenticatableContract
         $this->setTable(config('admin.database.users_table'));
 
         parent::__construct($attributes);
+    }
+
+    public function assignableUser()
+    {
+        $roles = $this->roles;
+        if ($roles){
+            $dept = $roles->firstWhere('leader_id','=',$this->leader_id);
+            $assignableUser = $dept->administrators ? $dept->administrators->pluck('name','id') : null;
+            return $assignableUser;
+        }
+        return null;
+    }
+
+    public function leader()
+    {
+        $relatedModel = config('admin.database.users_model');
+        return $this->belongsTo($relatedModel, 'leader_id', 'id');
     }
 }
