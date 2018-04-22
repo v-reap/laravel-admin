@@ -85,7 +85,7 @@ class TaskController extends Controller
                     ["title" => $title,
                     "user_id" => $user_id,
                     "status_id" => 1,
-                    "type_id" => $task->type->next_id,
+                    "type_id" => $input['type'],//$task->type->next_id
                     "root_id" => $task->root_id ? $task->root_id : $task->id,
                     "last_id" => $task->id,
                     ]);

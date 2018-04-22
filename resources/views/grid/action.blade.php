@@ -1,5 +1,5 @@
 
-<div class="bg-info  assign_to">
+<div class="bg-info hidden assign_to">
     <div class="callout callout-info col-sm-12">
         <div class="form-group col-sm-6">
             <div class="input-group">
