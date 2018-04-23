@@ -26,6 +26,8 @@ class TaskController extends Controller
 
     public $task;
 
+    public $lastTasks = [];
+
     public function __construct(Task $task, Type $type)
     {
         $input = Input::all();
@@ -36,6 +38,7 @@ class TaskController extends Controller
         if (isset(\Route::current()->parameters()['task'])){
             $this->task=$task->find(\Route::current()->parameters()['task']);
             $this->type=$this->task ? $this->task->type : null;
+            $this->displayLastTask($this->task);
         }
     }
 
@@ -150,17 +153,12 @@ class TaskController extends Controller
                 $grid->model()->where('type_id','=',$this->type->id);
                 foreach ($attributes as $attribute) {
                     if (!$attribute->not_list){
-                        $gData=$grid->column($attribute->frontend_label)->display(function () use ($attribute) {
+                        $thisController = $this;
+                        $gData=$grid->column($attribute->frontend_label)
+                            ->display(function () use ($attribute,$thisController) {
                             $val = (array_column($this->value->toArray(),'task_value','attribute_id'));
                             $data = isset($val[$attribute->id])?$val[$attribute->id]:'';
-                            if ($attribute->frontend_input=='image'){
-                                $data=substr($data,0,6)=='images' ? '/uploads/'.$data : $data;
-                                return '<img src="'.$data.'" width=100px />';
-                            }elseif ($attribute->frontend_input=='file'){
-                                return $data ? '<a href="/uploads/'.$data.'" target="_blank" ><i class="fa fa-download"></i></a>':'';
-                            }else{
-                                return $data;
-                            }
+                            return $thisController->displayAttr($attribute->frontend_input,$data);
                         });//->editable($attribute->frontend_input)
                         if ($attribute->frontend_input=='text'){
                             $gData->limit(30);
@@ -171,7 +169,7 @@ class TaskController extends Controller
                 $grid->column('type.name',trans('task.type_id'));
             }
 
-            $grid->column('hours',trans('task.hours'))->sortable();
+            $grid->column('time_limit',trans('task.time_limit'))->sortable();
             if (Admin::user()->can('tasks.price')){
                 $grid->column('price',trans('task.price'))->sortable();
             }
@@ -199,7 +197,7 @@ class TaskController extends Controller
             });
 
 //            $assignableUser = Admin::user()->roles->firstWhere('leader_id','=',Admin::user()->leader_id);
-            $grid->setActionAttrs($this->type->next->name,Admin::user()->assignableUser(),$this->type->assigned_to);
+            $grid->setActionAttrs($this->type->next->name,Admin::user()->assignableUser(),$this->type->next->assigned_to);
 //            $grid->content(trans('task.content'));
 //            $grid->task_id(trans('task.task_id'));
 //            $grid->user_id(trans('task.user_id'));
@@ -254,20 +252,40 @@ class TaskController extends Controller
         //todo eav submit
         return Admin::form(Task::class, function (Form $form) {
 //            $form->display('id', 'ID');
-            $form->hidden('user_id', trans('task.user_id'))->value(Admin::user()->id);
-            $form->hidden('type_id', trans('task.type_id'))->value($this->type->id);
-            $form->hidden('type', trans('task.type_id'))->value($this->type->id);
-            $form->text('title', trans('task.title'))->attribute('required','required')
-                ->placeholder(trans('task.Please Enter...'))->rules('required');
-            $form->decimal('time_limit', trans('task.time_limit'));
-            if (Admin::user()->can('tasks.price')){
-                $form->currency('price', trans('task.price'))->symbol('￥');
-            }
-            $form->datetime('end_at', trans('task.end_at'))->default(Carbon::now())->rules('required');
-            $form->select('status_id', trans('task.status_id'))->options(Status::all()->pluck('name','id'))
-                ->rules('required')->attribute('required','required');
+            $form = $form->tab($this->type->name, function ($form) {
 
-            foreach ($this->type->attribute->sortBy('orderby')->toArray() as $attribute) {
+                $form->hidden('user_id', trans('task.user_id'))->value(Admin::user()->id);
+                $form->hidden('type_id', trans('task.type_id'))->value($this->type->id);
+                $form->hidden('type', trans('task.type_id'))->value($this->type->id);
+                $form->text('title', trans('task.title'))->attribute('required','required')
+                    ->placeholder(trans('task.Please Enter...'))->rules('required');
+                $form->decimal('time_limit', trans('task.time_limit'));
+                if (Admin::user()->can('tasks.price')){
+                    $form->currency('price', trans('task.price'))->symbol('￥');
+                }
+                $form->datetime('end_at', trans('task.end_at'))->default(Carbon::now())->rules('required');
+                $form->select('status_id', trans('task.status_id'))->options(Status::all()->pluck('name','id'))
+                    ->rules('required')->attribute('required','required');
+
+                $this->eavForm($form,$this->task,$this->type);
+            });
+
+            foreach ($this->lastTasks as $lastTask) {
+                $form->tab($lastTask->type->name, function ($form) use ($lastTask) {
+                    $this->eavForm($form,$lastTask,$lastTask->type,true);
+                });
+            }
+//            $form->display('created_at', 'Created At');
+//            $form->display('updated_at', 'Updated At');
+
+            $form->builder()->getTools()->disableListButton();
+        });
+    }
+
+    public function eavForm($form,$task,$type,$readOnly=false)
+    {
+        foreach ($type->attribute->sortBy('orderby')->toArray() as $attribute) {
+            if (!$readOnly){
                 $form->hidden('value['.$attribute['id'].'][attribute_id]')->value($attribute['id']);
                 $attField = $form->{$attribute['frontend_input']}(
                     'value['.$attribute['id'].'][task_value]',$attribute['frontend_label']);
@@ -275,18 +293,43 @@ class TaskController extends Controller
                     $option = explode('|',$attribute['option']);
                     $attField = $attField->options(array_combine($option,$option));
                 }
-                if($this->task){
-                    $value=$this->task->value->where('attribute_id','=',$attribute['id'])->first();
+                if($task){
+                    $value=$task->value->where('attribute_id','=',$attribute['id'])->first();
                     $attField = $value ? $attField->value($value->task_value) : $attField;
                 }
                 if($attribute['rules']) {
                     $attField = $attField->attribute('required','required');
                 }
+            }else{
+                $value=$task->value->where('attribute_id','=',$attribute['id'])->first();
+                if ($value){
+                    $value = $this->displayAttr($attribute['frontend_input'],$value->task_value,false);
+                    $form->display('value'.$attribute['id'],$attribute['frontend_label'])->with(function () use ($value) {
+                        return $value;
+                    });
+                }
             }
-//            $form->display('created_at', 'Created At');
-//            $form->display('updated_at', 'Updated At');
+        }
+    }
 
-            $form->builder()->getTools()->disableListButton();
-        });
+    public function displayAttr($type,$data,$isList=true)
+    {
+        if ($type=='image'){
+            $data=substr($data,0,6)=='images' ? '/uploads/'.$data : $data;
+            return '<img src="'.$data.'" '.($isList?'width="100px"':'').' />';
+        }elseif ($type=='file'){
+            return $data ? '<a href="/uploads/'.$data.'" target="_blank" ><i class="fa fa-download"></i>'.
+                ($isList?'':$data).'</a>':'';
+        }else{
+            return $data;
+        }
+    }
+
+    public function displayLastTask($task)
+    {
+        if ($task->root_id){
+            $this->lastTasks[] = $task->last;
+            return $this->displayLastTask($task->last);
+        }
     }
 }

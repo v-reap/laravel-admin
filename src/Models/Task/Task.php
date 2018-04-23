@@ -46,8 +46,8 @@ class Task extends Model
      */
     protected $casts = [
         'title' => 'string',
-        'time_limit' => 'decimal',
-        'price' => 'integer',
+        'time_limit' => 'double',
+        'price' => 'double',
         'end_at' => 'datetime',
         'root_id' => 'integer',
         'next_id' => 'integer',
