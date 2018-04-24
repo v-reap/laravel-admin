@@ -24,6 +24,7 @@ class Type extends Model
         'root_id',
         'last_id',
         'next_id',
+        'is_approvable',
         'rules',
         'user_id'
     ];
@@ -40,6 +41,7 @@ class Type extends Model
         'root_id' => 'integer',
         'last_id' => 'integer',
         'next_id' => 'integer',
+        'is_approvable' => 'integer',
         'rules' => 'string',
         'user_id' => 'integer',
     ];

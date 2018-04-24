@@ -24,7 +24,7 @@ $('{$this->getElementClass()}').on('click', function() {
     var id = selectedRows().join();
     if(id){
         $('.countSelect').html('<i class="fa fa-check-square-o"></i> '+selectedRows().length);
-        $('.title').val($('.title').attr('basevalue')+selectedRows().join(', '));
+        $('.title_assign').val($('.title_assign').attr('basevalue')+selectedRows().join(', '));
         $('.assign_to').removeClass('hidden');
     }
 });
@@ -33,7 +33,7 @@ $('.assign-submit').on('click', function() {
     var id = selectedRows().join();
     swal({
       title: "$title",
-      text: $('.title').attr('basevalue')+selectedRows().join(', '),
+      text: $('.title_assign').attr('basevalue')+selectedRows().join(', '),
       type: "warning",
       showCancelButton: true,
       confirmButtonColor: "#DD6B55",
@@ -48,7 +48,7 @@ $('.assign-submit').on('click', function() {
             data: {
             _method:'put',
                 type:'{$this->action}',
-                title:$('.title').val(),
+                title:$('.title_assign').val(),
                 assignableUser:$('.assignableUser').val(),
                 _token:'{$this->getToken()}'
             },

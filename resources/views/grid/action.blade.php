@@ -5,7 +5,7 @@
             <div class="input-group">
                 <div class="input-group-addon">
                     <span class="label label-success countSelect"></span></div>
-                <input name="title" basevalue="@lang('task.Submit'){{ $action['title'] }}: " class="form-control title" />
+                <input name="title" basevalue="@lang('task.Submit'){{ $action['title'] }}: " class="form-control title_assign" />
             </div>
         </div>
 

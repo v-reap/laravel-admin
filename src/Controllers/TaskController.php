@@ -77,32 +77,15 @@ class TaskController extends Controller
         $ids = explode(',', $id);
         $tasks = Task::find($ids);
         foreach ($tasks as $task) {
-            if ($task->next && $task->next->status_id==5){
-                $complateTasks[]=$task->next->id;
-                continue;
-            }
-            \DB::beginTransaction();
-            try {
-                $newTask = Task::updateOrCreate(
-                    ['id'=>$task->next_id],
-                    ["title" => $title,
-                    "user_id" => $user_id,
-                    "status_id" => 1,
-                    "type_id" => $input['type'],//$task->type->next_id
-                    "root_id" => $task->root_id ? $task->root_id : $task->id,
-                    "last_id" => $task->id,
-                    ]);
-                $task->next_id=$newTask->id;
-                $task->save();
-            } catch (Exception $e) {
-                \DB::rollback();
-                \Log::error($e);
+            $saveAssign = $this->saveAssign($task,$user_id,$title);
+            if (!$saveAssign){
                 return response()->json([
                     'status'  => false,
                     'message' => trans('task.Action').trans('task.Error').'! ',
                 ]);
+            } elseif ($saveAssign>0) {
+                $complateTasks[]= $saveAssign;
             }
-            \DB::commit();
         }
 
         if ($complateTasks){
@@ -117,6 +100,33 @@ class TaskController extends Controller
                 'message' => trans('task.Action').trans('task.Success').'! ',
             ]);
         }
+    }
+
+    public function saveAssign($task,$user_id,$title)
+    {
+        if ($task->next && $task->next->status_id==5){
+            return $task->next->id;
+        }
+        \DB::beginTransaction();
+        try {
+            $newTask = Task::updateOrCreate(
+                ['id'=>$task->next_id],
+                ["title" => $title,
+                    "user_id" => $user_id,
+                    "status_id" => 1,
+                    "type_id" => $task->type->next_id,//$input['type']
+                    "root_id" => $task->root_id ? $task->root_id : $task->id,
+                    "last_id" => $task->id,
+                ]);
+            $task->next_id=$newTask->id;
+            $task->save();
+        } catch (Exception $e) {
+            \DB::rollback();
+            \Log::error($e);
+            return false;
+        }
+        \DB::commit();
+        return true;
     }
 
     /**
@@ -148,15 +158,22 @@ class TaskController extends Controller
     {
         return Admin::grid(Task::class, function (Grid $grid) {
             $grid->id('ID')->sortable();
+            $grid->column('status.name',trans('task.status_id'));//->sortable();
+            $grid->column('title',trans('task.title'))->limit(30);//->editable('text')
+            $grid->column('end_at',trans('task.end_at'))->sortable();//->editable('datetime')
             if ($this->type && $this->type->id){
-                $attributes=Attribute::all()->where('type_id','=',$this->type->id);
+                $attributes=Attribute::where('type_id','=',$this->type->id)
+                    ->orWhere('type_id','=',$this->type->root_id)->get();
                 $grid->model()->where('type_id','=',$this->type->id);
                 foreach ($attributes as $attribute) {
                     if (!$attribute->not_list){
                         $thisController = $this;
                         $gData=$grid->column($attribute->frontend_label)
                             ->display(function () use ($attribute,$thisController) {
-                            $val = (array_column($this->value->toArray(),'task_value','attribute_id'));
+                            $val = (array_column(array_merge(
+                                    $this->value?$this->value->toArray():[],
+                                    $this->rootValue?$this->rootValue->toArray():[]),
+                                'task_value','attribute_id'));
                             $data = isset($val[$attribute->id])?$val[$attribute->id]:'';
                             return $thisController->displayAttr($attribute->frontend_input,$data);
                         });//->editable($attribute->frontend_input)
@@ -173,9 +190,6 @@ class TaskController extends Controller
             if (Admin::user()->can('tasks.price')){
                 $grid->column('price',trans('task.price'))->sortable();
             }
-            $grid->column('status.name',trans('task.status_id'))->sortable();
-            $grid->column('title',trans('task.title'))->limit(30);//->editable('text')
-            $grid->column('end_at',trans('task.end_at'))->sortable();//->editable('datetime')
             $grid->column('created_at',trans('task.created_at'))->sortable();
             $grid->column('updated_at',trans('task.updated_at'))->sortable();
 
@@ -190,19 +204,27 @@ class TaskController extends Controller
                     });
                 });
             }
-            $grid->tools(function ($tools) {
-                $tools->batch(function ($batch) {
-                    $batch->add($this->type->next->name, new Grid\Tools\BatchWorkflow($this->type->id));
-                });
-            });
-
 //            $assignableUser = Admin::user()->roles->firstWhere('leader_id','=',Admin::user()->leader_id);
-            $grid->setActionAttrs($this->type->next->name,Admin::user()->assignableUser(),$this->type->next->assigned_to);
-//            $grid->content(trans('task.content'));
-//            $grid->task_id(trans('task.task_id'));
-//            $grid->user_id(trans('task.user_id'));
-//            $grid->type_id(trans('task.type_id'));
-
+            $assignableUser = Admin::user()->assignableUser();
+            if ($this->type){
+                $grid->setActionAttrs($this->type->next->name,$assignableUser,$this->type->assigned_to);
+                $grid->tools(function ($tools) {
+                    $tools->batch(function ($batch) {
+                        $batch->add($this->type->next->name, new Grid\Tools\BatchWorkflow($this->type->next->id));
+                    });
+                });
+            }
+            $grid->filter(function ($filter) use ($assignableUser) {
+                if (!$this->type){
+                    $filter->equal('type_id',trans('task.type_id'))->select(Type::all()->pluck('name','id'));
+                }
+                $filter->equal('status_id',trans('task.status_id'))->select(Status::all()->pluck('name','id'));
+                $filter->equal('user_id',trans('task.user_id'))->select($assignableUser);
+                $filter->like('title',trans('task.title'));
+                $filter->between('end_at',trans('task.end_at'))->datetime();
+                $filter->between('created_at',trans('task.created_at'))->datetime();
+                $filter->between('updated_at',trans('task.updated_at'))->datetime();
+            });
         });
     }
 
@@ -253,8 +275,9 @@ class TaskController extends Controller
         return Admin::form(Task::class, function (Form $form) {
 //            $form->display('id', 'ID');
             $form = $form->tab($this->type->name, function ($form) {
-
-                $form->hidden('user_id', trans('task.user_id'))->value(Admin::user()->id);
+                if(!$this->task){
+                    $form->hidden('user_id', trans('task.user_id'))->value(Admin::user()->id);
+                }
                 $form->hidden('type_id', trans('task.type_id'))->value($this->type->id);
                 $form->hidden('type', trans('task.type_id'))->value($this->type->id);
                 $form->text('title', trans('task.title'))->attribute('required','required')
@@ -264,20 +287,38 @@ class TaskController extends Controller
                     $form->currency('price', trans('task.price'))->symbol('￥');
                 }
                 $form->datetime('end_at', trans('task.end_at'))->default(Carbon::now())->rules('required');
-                $form->select('status_id', trans('task.status_id'))->options(Status::all()->pluck('name','id'))
-                    ->rules('required')->attribute('required','required');
-
                 $this->eavForm($form,$this->task,$this->type);
+                if($this->task && $this->type->is_approvable){
+                    $form->divide();
+                    $form->display('status_id', trans('task.status_id'))->with(function ($value) {
+                        return Status::find($value)->name;
+                    });
+                    $statusLabel = trans('task.Review');
+                    if (Admin::user()->id==$this->task->user_id){
+                        $statusLabel = trans('task.Submit').trans('task.leader').trans('task.Review');
+                        $states = ['on'  => ['value' => 3, 'text' => trans('task.Review'), 'color' => 'success'],
+                            'off' => ['value' => 1, 'text' => trans('task.TempSave'), 'color' => 'warning'],];
+                    }else{
+                        $states = ['on'  => ['value' => 7, 'text' => trans('task.Disapprove'), 'color' => 'danger'],
+                            'off' => ['value' => 6, 'text' => trans('task.Approve'), 'color' => 'success'],];
+                    }
+                    $form->switch('status_id', $statusLabel)->states($states);
+                } else {
+                    $form->select('status_id', trans('task.status_id'))->options(Status::all()->pluck('name','id'))
+                        ->rules('required')->attribute('required','required');
+                }
             });
-
             foreach ($this->lastTasks as $lastTask) {
                 $form->tab($lastTask->type->name, function ($form) use ($lastTask) {
                     $this->eavForm($form,$lastTask,$lastTask->type,true);
                 });
             }
-//            $form->display('created_at', 'Created At');
-//            $form->display('updated_at', 'Updated At');
-
+//            $form->hidden('created_at', 'Created At');
+//            $form->hidden('updated_at', 'Updated At');
+//            $form->tools(function (Form\Tools $tools) {
+//                $tools->add('<div class="btn-group pull-right"><a class="btn btn-sm btn-primary"><i class="fa fa-send"></i>&nbsp;&nbsp;'.trans('task.Review').'</a></div>');
+//            });
+//            $form->disableReset();
             $form->builder()->getTools()->disableListButton();
         });
     }
@@ -302,9 +343,10 @@ class TaskController extends Controller
                 }
             }else{
                 $value=$task->value->where('attribute_id','=',$attribute['id'])->first();
+                $displayValue = $form->display('value'.$attribute['id'],$attribute['frontend_label']);
                 if ($value){
                     $value = $this->displayAttr($attribute['frontend_input'],$value->task_value,false);
-                    $form->display('value'.$attribute['id'],$attribute['frontend_label'])->with(function () use ($value) {
+                    $displayValue->with(function () use ($value) {
                         return $value;
                     });
                 }
@@ -327,7 +369,7 @@ class TaskController extends Controller
 
     public function displayLastTask($task)
     {
-        if ($task->root_id){
+        if ($task && $task->root_id && $task->last){
             $this->lastTasks[] = $task->last;
             return $this->displayLastTask($task->last);
         }
