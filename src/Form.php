@@ -576,6 +576,7 @@ class Form
                 $result = $this->prepareEAVUpdate($value);//isset($value['task_value']) ? $value['task_value'] : null;
                 $attrs=array_diff_key($value,['task_value'=>0]);
                 if ($result){
+                    $result = is_array($result) ? json_encode($result) : $result;
                     Value::updateOrCreate($attrs,['task_value'=>$result]);
                 }
             }

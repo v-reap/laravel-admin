@@ -75,6 +75,33 @@ class Task extends Model
         parent::__construct($attributes);
     }
 
+    public function saveAssign($user_id,$title)
+    {
+        if ($this->next && $this->next->status_id==5){
+            return $this->next;
+        }
+        \DB::beginTransaction();
+        try {
+            $newTask = Task::updateOrCreate(
+                ['id'=>$this->next_id],
+                ["title" => $this->title.' ('.$this->user->name.$title.')',
+                "user_id" => $user_id,
+                "status_id" => 1,
+                "type_id" => $this->type->next_id,//$input['type']
+                "root_id" => $this->root_id ? $this->root_id : $this->id,
+                "last_id" => $this->id,
+                ]);
+            $this->next_id=$newTask->id;
+            $this->save();
+        } catch (\Exception $e) {
+            \DB::rollback();
+            \Log::error($e);
+            return false;
+        }
+        \DB::commit();
+        return $newTask;
+    }
+
     /**
      * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
      **/

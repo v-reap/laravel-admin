@@ -154,7 +154,9 @@ class MultipleFile extends Field
      */
     protected function preview()
     {
-        $files = $this->value ?: [];
+        //jack
+        $files = is_array($this->value) ? $this->value : json_decode($this->value);
+        $files = $files ?: [];
 
         return array_map([$this, 'objectUrl'], $files);
     }
