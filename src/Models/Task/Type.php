@@ -25,7 +25,7 @@ class Type extends Model
         'last_id',
         'next_id',
         'is_approvable',
-        'rules',
+        'ass_rules',
         'user_id'
     ];
 
@@ -42,7 +42,7 @@ class Type extends Model
         'last_id' => 'integer',
         'next_id' => 'integer',
         'is_approvable' => 'integer',
-        'rules' => 'string',
+        'ass_rules' => 'string',
         'user_id' => 'integer',
     ];
 
@@ -54,6 +54,14 @@ class Type extends Model
     public static $rules = [
         
     ];
+
+//    public function getAssRulesAttribute()
+//    {
+//        if ($this->attributes['ass_rules']){
+//            return json_decode($this->attributes['ass_rules']);
+//        }
+//        return [];
+//    }
 
     /**
      * @return \Illuminate\Database\Eloquent\Relations\BelongsTo

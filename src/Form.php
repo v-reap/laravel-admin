@@ -568,9 +568,8 @@ class Form
 
     protected function updateEAV($data)
     {
-        if($this->hasValue()){
+        if($this->hasValue() && isset($data['value'])){
             $taskId=$this->model->id;
-
             foreach($data['value'] as $value){
                 $value['task_id']=$taskId;
                 $result = $this->prepareEAVUpdate($value);//isset($value['task_value']) ? $value['task_value'] : null;

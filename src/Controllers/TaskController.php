@@ -3,6 +3,7 @@
 namespace Encore\Admin\Controllers;
 
 use Carbon\Carbon;
+use Encore\Admin\Auth\Database\Administrator;
 use Encore\Admin\Facades\Admin;
 use Encore\Admin\Form;
 use Encore\Admin\Grid;
@@ -50,8 +51,42 @@ class TaskController extends Controller
 
     public function test(Request $request)
     {
-        $task = Task::find(42517);
-        dd($task->toArray());
+        $rule1 = [
+            'saving'=>[
+                'if_key'=>'status_id',
+                'if_con'=>'==',
+                'if_value'=>5,
+                'error'=>[
+                    'title'   => '提交失败',
+                    'message' => '已完成任务无法修改，请联系系统管理员！',
+                ]
+            ]
+        ];
+        $rule2 = [
+            'saved'=>[
+                'if'=>[
+                    [
+                        'key'=>'status_id',
+                        'con'=>'==',
+                        'value'=>5,
+                    ],
+                    [
+                        'key'=>'type.next',
+                        'con'=>'>',
+                        'value'=>0,
+                    ],
+                ],
+                'action' => [
+                    'saveAssign'=>['user_id','系统自动分配:'],
+                ],
+                'success'=>[
+                    'title'   => '提交成功',
+                    'message' => '系统将自动分配到下一个任务环节！',
+                ]
+            ]
+        ];
+//        $task = Task::find(42517);
+//        dd($task->toArray());
 //        \DB::enableQueryLog();
 //        dd($updateCre->toArray(),$taskList->toArray(),\DB::getQueryLog());
     }
@@ -125,6 +160,14 @@ class TaskController extends Controller
     protected function grid()
     {
         return Admin::grid(Task::class, function (Grid $grid) {
+            $userIds = Administrator::where('leader_id',Admin::user()->id)->get()->pluck('id')->toArray();
+            $userIds[] = Admin::user()->id;
+            if ($this->isComplete==5){
+                $grid->model()->where('status_id','=',5);
+            } else {
+                $grid->model()->where('status_id','<>',5);
+            }
+            $grid->model()->whereIn('user_id',$userIds);
             $this->getColumns($grid);
             $this->getActions($grid);
             $this->getTools($grid);
@@ -134,11 +177,6 @@ class TaskController extends Controller
 
     public function getColumns($grid)
     {
-        if ($this->isComplete==5){
-            $grid->model()->where('status_id','=',5);
-        } else {
-            $grid->model()->where('status_id','<>',5);
-        }
         $grid->id('ID')->sortable();
         $grid->column('status.name',trans('task.status_id'));//->sortable();
         $grid->column('title',trans('task.title'))->limit(30);//->editable('text')
@@ -199,7 +237,7 @@ class TaskController extends Controller
                 });
             });
         }
-        if ($this->type){
+        if ($this->type && $this->type->next){
             $grid->setActionAttrs($this->type->next->name,Admin::user()->assignableUser(),$this->type->assigned_to);
             $grid->tools(function ($tools) {
                 $tools->batch(function ($batch) {
@@ -271,7 +309,7 @@ class TaskController extends Controller
 //            $form->display('id', 'ID');
             $this->getFieldForm($form);
             $form->builder()->getTools()->disableListButton();
-            $this->getOnSaveForm($form);
+            $this->task ? $this->getOnSaveForm($form) : null;
         });
     }
 
@@ -290,9 +328,9 @@ class TaskController extends Controller
                 $form->currency('price', trans('task.price'))->symbol('￥');
             }
             $form->datetime('end_at', trans('task.end_at'))->default(Carbon::now())->rules('required');
-            $isReadOnly = $this->task ? !(Admin::user()->id==$this->task->user_id || Admin::user()->isAdministrator()):false;
+            $isReadOnly = false;//$this->task ? !(Admin::user()->id==$this->task->user_id || Admin::user()->isAdministrator()):false;
             $this->getEAVFieldForm($form,$this->task,$this->type,$isReadOnly);
-            $this->getApprovableForm($form);
+            $this->getStatusField($form);
         });
         foreach ($this->lastTasks as $lastTask) {
             $form->tab($lastTask->type->name, function ($form) use ($lastTask) {
@@ -301,26 +339,35 @@ class TaskController extends Controller
         }
     }
 
-    public function getApprovableForm($form)
+    public function getStatusField($form)
     {
-        if($this->task && $this->type->is_approvable){
+        if($this->task){// && $this->type->is_approvable
             $form->divide();
             $form->display('status_id', trans('task.status_id'))->with(function ($value) {
-                return Status::find($value)->name;
+                $status = Status::find($value);
+                return $status ? $status->name : '';
             });
             $statusLabel = trans('task.Review');
-            if (Admin::user()->id==$this->task->user_id){
+            if ($this->task && Admin::user()->id==$this->task->user_id && !$this->type->next_id){
+                $statusLabel = trans('task.Submit');
+                $states = ['on' => ['value' => 2, 'text' => trans('task.Processing'), 'color' => 'warning'],
+                    'off'  => ['value' => 5, 'text' => trans('task.Complete'), 'color' => 'success'],];
+            }elseif ($this->task && Admin::user()->id==$this->task->user_id && $this->type->is_approvable){
                 $statusLabel = trans('task.Submit').trans('task.leader').trans('task.Review');
-                $states = ['on'  => ['value' => 3, 'text' => trans('task.Review'), 'color' => 'success'],
-                    'off' => ['value' => 1, 'text' => trans('task.TempSave'), 'color' => 'warning'],];
+                $states = ['on'  => ['value' => 8, 'text' => trans('task.Review'), 'color' => 'success'],
+                    'off' => ['value' => 2, 'text' => trans('task.TempSave'), 'color' => 'warning'],];
+            }elseif ($this->task && Admin::user()->id==$this->task->user_id && !$this->type->is_approvable){
+                $statusLabel = trans('task.Submit');
+                $states = ['on' => ['value' => 4, 'text' => trans('task.Cancel'), 'color' => 'danger'],
+                    'off'  => ['value' => 2, 'text' => trans('task.Processing'), 'color' => 'success'],];
             }else{
                 $states = ['on'  => ['value' => 7, 'text' => trans('task.Disapprove'), 'color' => 'danger'],
                     'off' => ['value' => 6, 'text' => trans('task.Approve'), 'color' => 'success'],];
             }
-            $form->switch('status_id', $statusLabel)->states($states);
+            $form->switch('status_id', $statusLabel)->states($states)->value($states['off']['value']);
         } else {
-            $form->select('status_id', trans('task.status_id'))->options(Status::all()->pluck('name','id'))
-                ->rules('required')->attribute('required','required');
+//            $form->select('status_id', trans('task.status_id'))->options(Status::all()->pluck('name','id'))->rules('required')->attribute('required','required');
+            $form->hidden('status_id', trans('task.status_id'))->value(1);
         }
     }
 
@@ -340,17 +387,12 @@ class TaskController extends Controller
             if ($form->model()->status_id==6){
                 $message .= $form->model()->title.'当前状态为'.$form->model()->status->name;
                 if ($form->model()->type->next){
-                    $form->model()->saveAssign($form->model()->user_id,'系统自动分配:'.$form->model()->title);
+                    $form->model()->saveAssign($form->model()->type->assigned_to ? $form->model()->type->assigned_to : $form->model()->user_id,'提交请求');
                     $message .= '! 系统将自动分配到下一个任务环节（'.$form->model()->type->next->name.'）！';
                 }
             }
             if (!$form->model()->type->next_id && $form->model()->status_id==5){
-                $lastTasks = $form->model();
-                while($lastTasks->last){
-                    $lastTasks = $lastTasks->last;
-                    $lastTasks->status_id = 5;
-                    $lastTasks = $lastTasks->save();
-                }
+                $lastTasks = $form->model()->saveComplete($this->task);
                 $message .= '当前任务流已最终完成，相关子任务已锁定为完成状态，不可修改!';
             }
             $success = new MessageBag([

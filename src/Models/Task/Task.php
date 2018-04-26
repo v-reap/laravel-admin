@@ -75,6 +75,16 @@ class Task extends Model
         parent::__construct($attributes);
     }
 
+    public function saveComplete($task)
+    {
+        if ($task->last_id){
+            $lastTasks = $task->last;
+            $lastTasks->status_id = 5;
+            $lastTasks->save();
+            return $this->saveComplete($lastTasks);
+        }
+    }
+
     public function saveAssign($user_id,$title)
     {
         if ($this->next && $this->next->status_id==5){
@@ -82,14 +92,16 @@ class Task extends Model
         }
         \DB::beginTransaction();
         try {
+            $baseTitle = $this->root_id ? $this->root->title : $this->title;
             $newTask = Task::updateOrCreate(
                 ['id'=>$this->next_id],
-                ["title" => $this->title.' ('.$this->user->name.$title.')',
-                "user_id" => $user_id,
-                "status_id" => 1,
-                "type_id" => $this->type->next_id,//$input['type']
-                "root_id" => $this->root_id ? $this->root_id : $this->id,
-                "last_id" => $this->id,
+                [
+                    "title" => $baseTitle.' ('.Admin::user()->name.$title.')',
+                    "user_id" => $user_id,
+                    "status_id" => 1,
+                    "type_id" => $this->type->next_id,//$input['type']
+                    "root_id" => $this->root_id ? $this->root_id : $this->id,
+                    "last_id" => $this->id,
                 ]);
             $this->next_id=$newTask->id;
             $this->save();
