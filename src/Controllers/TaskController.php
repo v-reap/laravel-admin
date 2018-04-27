@@ -160,14 +160,16 @@ class TaskController extends Controller
     protected function grid()
     {
         return Admin::grid(Task::class, function (Grid $grid) {
-            $userIds = Administrator::where('leader_id',Admin::user()->id)->get()->pluck('id')->toArray();
-            $userIds[] = Admin::user()->id;
             if ($this->isComplete==5){
                 $grid->model()->where('status_id','=',5);
             } else {
                 $grid->model()->where('status_id','<>',5);
             }
-            $grid->model()->whereIn('user_id',$userIds);
+            if (!Admin::user()->isAdministrator()){
+                $userIds = Administrator::where('leader_id',Admin::user()->id)->get()->pluck('id')->toArray();
+                $userIds[] = Admin::user()->id;
+                $grid->model()->whereIn('user_id',$userIds);
+            }
             $this->getColumns($grid);
             $this->getActions($grid);
             $this->getTools($grid);
@@ -347,7 +349,6 @@ class TaskController extends Controller
                 $status = Status::find($value);
                 return $status ? $status->name : '';
             });
-            $statusLabel = trans('task.Review');
             if ($this->task && Admin::user()->id==$this->task->user_id && !$this->type->next_id){
                 $statusLabel = trans('task.Submit');
                 $states = ['on' => ['value' => 2, 'text' => trans('task.Processing'), 'color' => 'warning'],
@@ -356,11 +357,16 @@ class TaskController extends Controller
                 $statusLabel = trans('task.Submit').trans('task.leader').trans('task.Review');
                 $states = ['on'  => ['value' => 8, 'text' => trans('task.Review'), 'color' => 'success'],
                     'off' => ['value' => 2, 'text' => trans('task.TempSave'), 'color' => 'warning'],];
+            }elseif ($this->task && Admin::user()->id==$this->task->user_id && !$this->type->is_approvable && $this->type->assigned_to){
+                $statusLabel = trans('task.Submit');
+                $states = ['on' => ['value' => 2, 'text' => trans('task.Processing'), 'color' => 'warning'],
+                    'off'  => ['value' => 6, 'text' => trans('task.Approve'), 'color' => 'success'],];
             }elseif ($this->task && Admin::user()->id==$this->task->user_id && !$this->type->is_approvable){
                 $statusLabel = trans('task.Submit');
                 $states = ['on' => ['value' => 4, 'text' => trans('task.Cancel'), 'color' => 'danger'],
                     'off'  => ['value' => 2, 'text' => trans('task.Processing'), 'color' => 'success'],];
             }else{
+                $statusLabel = trans('task.Review');
                 $states = ['on'  => ['value' => 7, 'text' => trans('task.Disapprove'), 'color' => 'danger'],
                     'off' => ['value' => 6, 'text' => trans('task.Approve'), 'color' => 'success'],];
             }
