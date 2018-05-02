@@ -53,6 +53,16 @@ class Administrator extends Model implements AuthenticatableContract
         return null;
     }
 
+    public function isLeader()
+    {
+        $roles = $this->roles;
+        if ($roles){
+            $depts = $roles->where('leader_id','=',$this->id);
+            return $depts ? true : false;
+        }
+        return false;
+    }
+
     public function leader()
     {
         $relatedModel = config('admin.database.users_model');

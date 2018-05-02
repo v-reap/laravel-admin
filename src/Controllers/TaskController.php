@@ -192,6 +192,9 @@ class TaskController extends Controller
         if (Admin::user()->can('tasks.price')){
             $grid->column('price',trans('task.price'))->sortable();
         }
+        if (Admin::user()->isAdministrator() || Admin::user()->isLeader()){
+            $grid->column('user.name',trans('task.user_id'));
+        }
         $grid->column('created_at',trans('task.created_at'))->sortable();
         $grid->column('updated_at',trans('task.updated_at'))->sortable();
     }
@@ -343,8 +346,8 @@ class TaskController extends Controller
 
     public function getStatusField($form)
     {
+        $form->divide();
         if($this->task){// && $this->type->is_approvable
-            $form->divide();
             $form->display('status_id', trans('task.status_id'))->with(function ($value) {
                 $status = Status::find($value);
                 return $status ? $status->name : '';
@@ -375,6 +378,10 @@ class TaskController extends Controller
 //            $form->select('status_id', trans('task.status_id'))->options(Status::all()->pluck('name','id'))->rules('required')->attribute('required','required');
             $form->hidden('status_id', trans('task.status_id'))->value(1);
         }
+        if ($this->type->is_custom_assignable){
+            $form->select('custom_assigned_to', trans('task.assigned_to'))->options(Admin::user()->assignableUser())->attribute('required','required');
+            $form->ignore(['custom_assigned_to']);
+        }
     }
 
     public function getOnSaveForm($form)
@@ -390,16 +397,25 @@ class TaskController extends Controller
         });
         $form->saved(function ($form) {
             $message = '';
-            if ($form->model()->status_id==6){
-                $message .= $form->model()->title.'当前状态为'.$form->model()->status->name;
-                if ($form->model()->type->next){
-                    $form->model()->saveAssign($form->model()->type->assigned_to ? $form->model()->type->assigned_to : $form->model()->user_id,'提交请求');
-                    $message .= '! 系统将自动分配到下一个任务环节（'.$form->model()->type->next->name.'）！';
+            $input = Input::all();
+            if (isset($input['custom_assigned_to'])){
+                if ($form->model()->saveAssign($input['custom_assigned_to'],'提交请求')){
+                    $message .= '您的任务分配成功！（'.$form->model()->type->next->name.'）';
+                }else{
+                    $message .= '您的任务分配失败！';
                 }
-            }
-            if (!$form->model()->type->next_id && $form->model()->status_id==5){
-                $lastTasks = $form->model()->saveComplete($this->task);
-                $message .= '当前任务流已最终完成，相关子任务已锁定为完成状态，不可修改!';
+            }else{
+                if ($form->model()->status_id==6){
+                    $message .= $form->model()->title.'当前状态为'.$form->model()->status->name;
+                    if ($form->model()->type->next){
+                        $form->model()->saveAssign($form->model()->type->assigned_to ? $form->model()->type->assigned_to : $form->model()->user_id,'提交请求');
+                        $message .= '! 系统将自动分配到下一个任务环节（'.$form->model()->type->next->name.'）！';
+                    }
+                }
+                if (!$form->model()->type->next_id && $form->model()->status_id==5){
+                    $lastTasks = $form->model()->saveComplete($this->task);
+                    $message .= '当前任务流已最终完成，相关子任务已锁定为完成状态，不可修改!';
+                }
             }
             $success = new MessageBag([
                 'title'   => '任务'.$form->model()->status->name.'！',
