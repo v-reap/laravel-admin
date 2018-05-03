@@ -51,40 +51,6 @@ class TaskController extends Controller
 
     public function test(Request $request)
     {
-        $rule1 = [
-            'saving'=>[
-                'if_key'=>'status_id',
-                'if_con'=>'==',
-                'if_value'=>5,
-                'error'=>[
-                    'title'   => '提交失败',
-                    'message' => '已完成任务无法修改，请联系系统管理员！',
-                ]
-            ]
-        ];
-        $rule2 = [
-            'saved'=>[
-                'if'=>[
-                    [
-                        'key'=>'status_id',
-                        'con'=>'==',
-                        'value'=>5,
-                    ],
-                    [
-                        'key'=>'type.next',
-                        'con'=>'>',
-                        'value'=>0,
-                    ],
-                ],
-                'action' => [
-                    'saveAssign'=>['user_id','系统自动分配:'],
-                ],
-                'success'=>[
-                    'title'   => '提交成功',
-                    'message' => '系统将自动分配到下一个任务环节！',
-                ]
-            ]
-        ];
 //        $task = Task::find(42517);
 //        dd($task->toArray());
 //        \DB::enableQueryLog();
@@ -386,6 +352,40 @@ class TaskController extends Controller
 
     public function getOnSaveForm($form)
     {
+        $rule1 = [
+            'saving'=>[
+                'if_key'=>'status_id',
+                'if_con'=>'==',
+                'if_value'=>5,
+                'error'=>[
+                    'title'   => '提交失败',
+                    'message' => '已完成任务无法修改，请联系系统管理员！',
+                ]
+            ]
+        ];
+        $rule2 = [
+            'saved'=>[
+                'if'=>[
+                    [
+                        'key'=>'status_id',
+                        'con'=>'==',
+                        'value'=>5,
+                    ],
+                    [
+                        'key'=>'type.next',
+                        'con'=>'>',
+                        'value'=>0,
+                    ],
+                ],
+                'action' => [
+                    'saveAssign'=>['user_id','系统自动分配:'],
+                ],
+                'success'=>[
+                    'title'   => '提交成功',
+                    'message' => '系统将自动分配到下一个任务环节！',
+                ]
+            ]
+        ];
         $form->saving(function ($form) {
             if ($form->model()->status_id==5){
                 $error = new MessageBag([
