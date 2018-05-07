@@ -54,6 +54,7 @@ class TaskController extends Controller
 //        $task = Task::find(42517);
 //        dd($task->toArray());
 //        \DB::enableQueryLog();
+//        dd($value, \DB::getQueryLog());
 //        dd($updateCre->toArray(),$taskList->toArray(),\DB::getQueryLog());
     }
 
@@ -174,13 +175,10 @@ class TaskController extends Controller
             if (!$attribute->not_list){
                 $thisController = $this;
                 $gData=$grid->column($attribute->frontend_label)
-                    ->display(function () use ($attribute,$thisController) {
-                        $val = (array_column(array_merge(
-                            $this->value?$this->value->toArray():[],
-                            $this->rootValue?$this->rootValue->toArray():[]),
-                            'task_value','attribute_id'));
-                        $data = isset($val[$attribute->id])?$val[$attribute->id]:'';
-                        return $thisController->displayAttr($attribute->frontend_input,$data);
+                    ->display(function () use ($attribute) {
+                        $values = $this->value->merge($this->rootValue)->where('attribute_id',$attribute->id);
+                        $value = $values->first() ? $values->first()->getFieldHtml($attribute->list_field_html) : '';
+                        return $value;
                     });//->editable($attribute->frontend_input)
                 if ($attribute->frontend_input=='text'){
                     $gData->limit(30);
@@ -449,33 +447,12 @@ class TaskController extends Controller
                 $value=$task->value->where('attribute_id','=',$attribute['id'])->first();
                 $displayValue = $form->display('value'.$attribute['id'],$attribute['frontend_label']);
                 if ($value){
-                    $value = $this->displayAttr($attribute['frontend_input'],$value->task_value,false);
+                    $value = $value->getFieldHtml($attribute['form_field_html']);
                     $displayValue->with(function () use ($value) {
                         return $value;
                     });
                 }
             }
-        }
-    }
-
-    public function displayAttr($type,$data,$isList=true)
-    {
-        if ($type=='image'){
-            $data=substr($data,0,6)=='images' ? '/uploads/'.$data : $data;
-            return '<img alt="'.$data.'" src="'.$data.'" '.($isList?'width="100px"':'').' />';
-        }elseif ($type=='file'){
-            return $data ? '<a alt="'.$data.'" href="/uploads/'.$data.'" target="_blank" ><i class="fa fa-download"></i>'.($isList?'':$data).'</a>':'';
-        }elseif ($type=='multipleFile' || $type=='multipleImage'){
-            $data = json_decode($data);
-            $html = '';
-            if (is_array($data)) {
-                foreach ($data as $item) {
-                    $html .= $item ? '<a alt="'.$item.'" href="/uploads/'.$item.'" target="_blank" ><i class="fa fa-download"></i>'.($isList?'':$item).'</a>'.($isList?' ':'<br/>'):'';
-                }
-            }
-            return $html;
-        }else{
-            return $data;
         }
     }
 

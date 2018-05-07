@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @package App\Models
  * @version November 3, 2016, 1:12 pm CST
  */
-class Attribute extends Model
+class Activity extends Model
 {
     use SoftDeletes;
 

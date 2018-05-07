@@ -58,4 +58,15 @@ class Value extends Model
     {
         return $this->belongsTo(\Encore\Admin\Models\Task\Attribute::class, 'attribute_id', 'id');
     }
+
+    public function getFieldHtml($customHtml)
+    {
+        $data = json_decode($this->attributes['task_value']);
+        $data = !is_array($data) ? [$data] : $data;
+        $html = '';
+        foreach ($data as $item) {
+            $html .= $customHtml ? str_replace("%value%", $item, $customHtml) : $item;
+        }
+        return $html;
+    }
 }
