@@ -61,12 +61,16 @@ class Value extends Model
 
     public function getFieldHtml($customHtml)
     {
-        $data = json_decode($this->attributes['task_value']);
-        $data = !is_array($data) ? [$data] : $data;
-        $html = '';
-        foreach ($data as $item) {
-            $html .= $customHtml ? str_replace("%value%", $item, $customHtml) : $item;
+        $value = $this->attributes['task_value'];
+        $data = json_decode($value);
+        if (is_array($data)){
+            $html = '';
+            foreach ($data as $item) {
+                $html .= $customHtml ? str_replace("%value%", $item, $customHtml) : $item;
+            }
+            return $html;
+        } else {
+            return $customHtml ? str_replace("%value%", $value, $customHtml) : $value;
         }
-        return $html;
     }
 }

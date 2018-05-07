@@ -35,6 +35,7 @@ class TaskController extends Controller
     public function __construct(Task $task, Type $type)
     {
         $input = Input::all();
+        $this->type=$type;
 
         if (isset($input['type'])){
             $this->type=$type->find($input['type']);
@@ -177,6 +178,7 @@ class TaskController extends Controller
                 $gData=$grid->column($attribute->frontend_label)
                     ->display(function () use ($attribute) {
                         $values = $this->value->merge($this->rootValue)->where('attribute_id',$attribute->id);
+//                        dd($this->value->merge($this->rootValue)->where('attribute_id',536)->first()->getFieldHtml('sdsa'));
                         $value = $values->first() ? $values->first()->getFieldHtml($attribute->list_field_html) : '';
                         return $value;
                     });//->editable($attribute->frontend_input)
@@ -231,6 +233,66 @@ class TaskController extends Controller
         });
     }
 
+    public function report()
+    {
+        return Admin::content(function (Content $content) {
+            $content->header(trans('task.Task').trans('task.Reports'));
+            $content->description('...');
+            $content->body(Admin::grid(Task::class, function (Grid $grid) {
+                if (!Admin::user()->isAdministrator()){
+                    $userIds = Administrator::where('leader_id',Admin::user()->id)->get()->pluck('id')->toArray();
+                    $userIds[] = Admin::user()->id;
+                    $grid->model()->whereIn('user_id',$userIds);
+                }
+                $this->getReportColumns($grid);
+                $grid->disableRowSelector();
+                $grid->disableCreateButton();
+                $grid->disableActions();
+                $this->getFilter($grid);
+            }));
+        });
+    }
+
+
+    public function getReportColumns($grid)
+    {
+        $grid->id('ID')->sortable();
+        $grid->column('status.name',trans('task.status_id'));//->sortable();
+        $grid->column('step','当前阶段')->display(function () {
+
+            return 'blablabla....';
+        });
+        $attributes=Attribute::whereIn('type_id',($this->type->where('root_id',2)->get(['id'])->pluck('id')))->get();
+//        dd($attributes);
+        $grid->model()->whereNull('root_id')->where('type_id','=',2);
+        foreach ($attributes as $attribute) {
+            if (!$attribute->not_list){
+                $thisController = $this;
+                $gData=$grid->column($attribute->frontend_label)
+                    ->display(function () use ($attribute) {
+//                        dd($values = $this->allValue);
+                        $values = $this->allValue->where('attribute_id',$attribute->id);
+//                        dd($this->value->merge($this->rootValue)->where('attribute_id',536)->first()->getFieldHtml('sdsa'));
+                        $value = $values->first() ? $values->first()->getFieldHtml($attribute->list_field_html) : '';
+                        return $value;
+                    });//->editable($attribute->frontend_input)
+                if ($attribute->frontend_input=='text'){
+                    $gData->limit(30);
+                }
+            }
+        }
+        $grid->column('title',trans('task.title'))->limit(30);//->editable('text')
+        $grid->column('end_at',trans('task.end_at'))->sortable();//->editable('datetime')
+        $grid->column('time_limit',trans('task.time_limit'))->sortable();
+        if (Admin::user()->can('tasks.price')){
+            $grid->column('price',trans('task.price'))->sortable();
+        }
+        if (Admin::user()->isAdministrator() || Admin::user()->isLeader()){
+            $grid->column('user.name',trans('task.user_id'));
+        }
+        $grid->column('created_at',trans('task.created_at'))->sortable();
+        $grid->column('updated_at',trans('task.updated_at'))->sortable();
+    }
     /**
      * Edit interface.
      *

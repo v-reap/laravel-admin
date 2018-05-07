@@ -148,6 +148,11 @@ class Task extends Model
         return $this->hasMany(Value::class, 'task_id', 'root_id');
     }
 
+    public function allValue()
+    {
+        return $this->hasMany(Value::class, 'root_id', 'id');
+    }
+
     public function root()
     {
         return $this->belongsTo(static::class, 'root_id', 'id');
