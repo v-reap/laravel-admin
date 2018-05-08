@@ -16,7 +16,9 @@ use Encore\Admin\Controllers\ModelForm;
 use Illuminate\Routing\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Input;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\MessageBag;
 use Exception;
 
@@ -34,14 +36,11 @@ class TaskController extends Controller
 
     public function __construct(Task $task, Type $type)
     {
-        $input = Input::all();
-        $this->type=$type;
-
-        if (isset($input['type'])){
-            $this->type=$type->find($input['type']);
-        }
-        if (isset($input['complete'])){
-            $this->isComplete=$input['complete'];
+        $this->isComplete=Input::get('complete');
+        $this->task=$task;
+        $this->type=$type->find(Input::get('type'));
+        if (!$this->type){
+            $this->type=$type;
         }
         if (isset(\Route::current()->parameters()['task'])){
             $this->task=$task->find(\Route::current()->parameters()['task']);
@@ -174,7 +173,6 @@ class TaskController extends Controller
         $grid->model()->where('type_id','=',$this->type->id);
         foreach ($attributes as $attribute) {
             if (!$attribute->not_list){
-                $thisController = $this;
                 $gData=$grid->column($attribute->frontend_label)
                     ->display(function () use ($attribute) {
                         $values = $this->value->merge($this->rootValue)->where('attribute_id',$attribute->id);
@@ -233,66 +231,6 @@ class TaskController extends Controller
         });
     }
 
-    public function report()
-    {
-        return Admin::content(function (Content $content) {
-            $content->header(trans('task.Task').trans('task.Reports'));
-            $content->description('...');
-            $content->body(Admin::grid(Task::class, function (Grid $grid) {
-                if (!Admin::user()->isAdministrator()){
-                    $userIds = Administrator::where('leader_id',Admin::user()->id)->get()->pluck('id')->toArray();
-                    $userIds[] = Admin::user()->id;
-                    $grid->model()->whereIn('user_id',$userIds);
-                }
-                $this->getReportColumns($grid);
-                $grid->disableRowSelector();
-                $grid->disableCreateButton();
-                $grid->disableActions();
-                $this->getFilter($grid);
-            }));
-        });
-    }
-
-
-    public function getReportColumns($grid)
-    {
-        $grid->id('ID')->sortable();
-        $grid->column('status.name',trans('task.status_id'));//->sortable();
-        $grid->column('step','当前阶段')->display(function () {
-
-            return 'blablabla....';
-        });
-        $attributes=Attribute::whereIn('type_id',($this->type->where('root_id',2)->get(['id'])->pluck('id')))->get();
-//        dd($attributes);
-        $grid->model()->whereNull('root_id')->where('type_id','=',2);
-        foreach ($attributes as $attribute) {
-            if (!$attribute->not_list){
-                $thisController = $this;
-                $gData=$grid->column($attribute->frontend_label)
-                    ->display(function () use ($attribute) {
-//                        dd($values = $this->allValue);
-                        $values = $this->allValue->where('attribute_id',$attribute->id);
-//                        dd($this->value->merge($this->rootValue)->where('attribute_id',536)->first()->getFieldHtml('sdsa'));
-                        $value = $values->first() ? $values->first()->getFieldHtml($attribute->list_field_html) : '';
-                        return $value;
-                    });//->editable($attribute->frontend_input)
-                if ($attribute->frontend_input=='text'){
-                    $gData->limit(30);
-                }
-            }
-        }
-        $grid->column('title',trans('task.title'))->limit(30);//->editable('text')
-        $grid->column('end_at',trans('task.end_at'))->sortable();//->editable('datetime')
-        $grid->column('time_limit',trans('task.time_limit'))->sortable();
-        if (Admin::user()->can('tasks.price')){
-            $grid->column('price',trans('task.price'))->sortable();
-        }
-        if (Admin::user()->isAdministrator() || Admin::user()->isLeader()){
-            $grid->column('user.name',trans('task.user_id'));
-        }
-        $grid->column('created_at',trans('task.created_at'))->sortable();
-        $grid->column('updated_at',trans('task.updated_at'))->sortable();
-    }
     /**
      * Edit interface.
      *
@@ -412,40 +350,40 @@ class TaskController extends Controller
 
     public function getOnSaveForm($form)
     {
-        $rule1 = [
-            'saving'=>[
-                'if_key'=>'status_id',
-                'if_con'=>'==',
-                'if_value'=>5,
-                'error'=>[
-                    'title'   => '提交失败',
-                    'message' => '已完成任务无法修改，请联系系统管理员！',
-                ]
-            ]
-        ];
-        $rule2 = [
-            'saved'=>[
-                'if'=>[
-                    [
-                        'key'=>'status_id',
-                        'con'=>'==',
-                        'value'=>5,
-                    ],
-                    [
-                        'key'=>'type.next',
-                        'con'=>'>',
-                        'value'=>0,
-                    ],
-                ],
-                'action' => [
-                    'saveAssign'=>['user_id','系统自动分配:'],
-                ],
-                'success'=>[
-                    'title'   => '提交成功',
-                    'message' => '系统将自动分配到下一个任务环节！',
-                ]
-            ]
-        ];
+//        $rule1 = [
+//            'saving'=>[
+//                'if_key'=>'status_id',
+//                'if_con'=>'==',
+//                'if_value'=>5,
+//                'error'=>[
+//                    'title'   => '提交失败',
+//                    'message' => '已完成任务无法修改，请联系系统管理员！',
+//                ]
+//            ]
+//        ];
+//        $rule2 = [
+//            'saved'=>[
+//                'if'=>[
+//                    [
+//                        'key'=>'status_id',
+//                        'con'=>'==',
+//                        'value'=>5,
+//                    ],
+//                    [
+//                        'key'=>'type.next',
+//                        'con'=>'>',
+//                        'value'=>0,
+//                    ],
+//                ],
+//                'action' => [
+//                    'saveAssign'=>['user_id','系统自动分配:'],
+//                ],
+//                'success'=>[
+//                    'title'   => '提交成功',
+//                    'message' => '系统将自动分配到下一个任务环节！',
+//                ]
+//            ]
+//        ];
         $form->saving(function ($form) {
             if ($form->model()->status_id==5){
                 $error = new MessageBag([
@@ -523,6 +461,119 @@ class TaskController extends Controller
         if ($task && $task->root_id && $task->last){
             $this->lastTasks[] = $task->last;
             return $this->displayLastTask($task->last);
+        }
+    }
+
+    public function reportEav()
+    {
+        return Admin::content(function (Content $content) {
+            $content->header(trans('task.Reports'));
+            $content->description('...');
+            $content->body(Admin::grid(Task::class, function (Grid $grid) {
+                if (!Admin::user()->isAdministrator()){
+                    $userIds = Administrator::where('leader_id',Admin::user()->id)->get()->pluck('id')->toArray();
+                    $userIds[] = Admin::user()->id;
+                    $grid->model()->whereIn('user_id',$userIds);
+                }
+                $this->getReportColumns($grid);
+                $grid->disableRowSelector();
+                $grid->disableCreateButton();
+                $grid->disableActions();
+                $this->getFilter($grid);
+            }));
+        });
+    }
+
+    public function getReportColumns($grid)
+    {
+        $typeId = Input::get('type');
+        $grid->id('ID')->sortable();
+        $grid->column('status.name',trans('task.status_id'));//->sortable();
+        $grid->column('current.type_id','当前阶段')->display(function ($type_id) {
+            $type = $this->type->find($type_id);
+            return $type ? $type->name : $this->type->find(Input::get('type'))->name;
+        });
+        if (Admin::user()->can('tasks.price')){
+            $grid->column('price',trans('task.price'))->sortable();
+        }
+        if (Admin::user()->isAdministrator() || Admin::user()->isLeader()){
+            $grid->column('user.name',trans('task.user_id'));
+        }
+        $grid->column('created_at',trans('task.created_at'))->sortable();
+        $grid->column('updated_at',trans('task.updated_at'))->sortable();
+
+        $attributes=Attribute::whereIn('type_id',($this->type->where('root_id',$typeId)->get(['id'])->pluck('id')))->get();
+        $grid->model()->whereNull('root_id')->where('type_id','=',$typeId);
+        foreach ($attributes as $attribute) {
+            if (!$attribute->not_list){
+                $gData=$grid->column($attribute->frontend_label)
+                    ->display(function () use ($attribute) {
+                        $values = $this->allValue->where('attribute_id',$attribute->id);
+                        $value = $values->first() ? $values->first()->getFieldHtml($attribute->list_field_html) : '';
+                        return $value;
+                    });
+                if ($attribute->frontend_input=='text'){
+                    $gData->limit(30);
+                }
+            }
+        }
+    }
+
+    public function reportSchema()
+    {
+        $typeId = Input::get('type');
+        $this->updateSchema($typeId);
+//        \DB::enableQueryLog();
+//        dd(DB::table($tableName)->join('tasks', $tableName.'.id', '=', 'tasks.id')->whereRaw($tableName.'.updated_at<tasks.updated_at')->get([$tableName.'.id'])->pluck('id'), \DB::getQueryLog());
+//        $dbh->query("DESCRIBE tablename")->fetchAll();
+    }
+
+    public function updateSchema($typeId)
+    {
+        $tableName = 'report'.$typeId;
+        if (!Schema::hasTable($tableName)){
+            Schema::create($tableName, function($table) use ($typeId)
+            {
+                $table->increments('id');
+                $table->string('title')->comment(trans('task.title'));
+                $table->decimal('time_limit')->nullable()->comment(trans('task.time_limit'));
+                $table->decimal('price')->nullable()->comment(trans('task.price'));
+                $table->dateTime('end_at')->nullable()->comment(trans('task.end_at'));
+                $table->integer('user_id')->comment(trans('task.user_id'));
+                $table->integer('status_id')->comment(trans('task.status_id'));
+                $table->integer('type_id')->comment(trans('task.type_id'));
+                $table->timestamps();
+                $attributes=Attribute::whereIn('type_id',($this->type->where('root_id',$typeId)->get(['id'])->pluck('id')))->get();
+                foreach($attributes as $attr) {
+                    if (!$attr->not_report){
+                        $table->string('attr'.$attr->id)->nullable()->comment($attr->frontend_label);
+                    }
+                }
+            });
+        } else {
+            Schema::table($tableName, function($table) use ($typeId)
+            {
+                $attributes=Attribute::whereIn('type_id',($this->type->where('root_id',$typeId)->get(['id'])->pluck('id')))->get();
+                foreach($attributes as $attr) {
+                    if (!$attr->not_report && !Schema::hasColumn($table->getTable(),'attr'.$attr->id)){
+                        $table->string('attr'.$attr->id)->nullable()->comment($attr->frontend_label);
+                    }
+                }
+            });
+        }
+        $hasTasks = DB::table($tableName)->join('tasks', $tableName.'.id', '=', 'tasks.id')
+            ->whereRaw($tableName.'.updated_at>tasks.updated_at')->get([$tableName.'.id'])->pluck('id');
+        $tasks = $this->task->whereNull('root_id')->where('type_id','=',$typeId)->whereNotIn('id',$hasTasks)
+            ->with('allValue')->get(['id','title','time_limit','price','user_id','status_id','type_id','created_at'])->toArray();
+        foreach ($tasks as $key=>$task) {
+            if (isset($task['all_value'])) {
+                foreach ($task['all_value'] as $item) {
+                    $tasks[$key]['attr'.$item['attribute_id']]=$item['task_value'];
+                }
+                $tasks[$key]['updated_at'] = Carbon::now();
+                unset($tasks[$key]['all_value']);
+            }
+            $report = DB::table($tableName)->updateOrInsert(['id'=>$tasks[$key]['id']],$tasks[$key]);
         }
     }
 }

@@ -5,6 +5,7 @@ namespace Encore\Admin\Middleware;
 use Encore\Admin\Auth\Database\OperationLog as OperationLogModel;
 use Encore\Admin\Facades\Admin;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Input;
 use Illuminate\Support\Str;
 
 class LogOperation
@@ -19,6 +20,15 @@ class LogOperation
      */
     public function handle(Request $request, \Closure $next)
     {
+//        $debug = \DB::listen(function($sql, $bindings, $time) {
+//            echo ('SQL语句执行：'.$sql.'，参数：'.json_encode($bindings).',耗时：'.$time.'ms');
+//        });
+//        $debug2 = \Event::listen('illuminate.query', function ($query) {
+//            \Log::debug($query);
+//        });
+        if (Input::get('debug')){
+            \DB::enableQueryLog();
+        }
         if ($this->shouldLogOperation($request)) {
             $log = [
                 'user_id' => Admin::user()->id,
@@ -32,6 +42,26 @@ class LogOperation
         }
 
         return $next($request);
+    }
+
+    public function terminate($request, $response)
+    {
+        // Store or dump the log data...
+//        \Log::debug(
+//            \DB::getQueryLog()
+//        );
+//        \Log::debug($request->all());
+        if (Input::get('debug')){
+            $queryLog = \DB::getQueryLog();
+            if ($queryLog){
+                foreach ($queryLog as $logs){
+                    $logs['route'] = $request->path();
+                    $logs['created_at'] = date('Y-m-d H:i:s');
+                    $logs['bindings'] = isset($logs['bindings']) ? implode(',',$logs['bindings']) : '';
+                    \DB::table('log_db')->insert($logs);
+                }
+            }
+        }
     }
 
     /**

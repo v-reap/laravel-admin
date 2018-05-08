@@ -61,7 +61,7 @@ trait UploadField
     protected function setupDefaultOptions()
     {
         $defaultOptions = [
-            'overwriteInitial'     => false,
+            'overwriteInitial'     => true,
             'initialPreviewAsData' => true,
             'browseLabel'          => trans('admin.browse'),
             'showRemove'           => false,

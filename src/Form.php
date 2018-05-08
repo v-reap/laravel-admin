@@ -570,8 +570,10 @@ class Form
     {
         if($this->hasValue() && isset($data['value'])){
             $taskId=$this->model->id;
+            $taskRootId=$this->model->root_id;
             foreach($data['value'] as $value){
                 $value['task_id']=$taskId;
+                $value['root_id']=$taskRootId ? $taskRootId : $taskId;
                 $result = $this->prepareEAVUpdate($value);//isset($value['task_value']) ? $value['task_value'] : null;
                 $attrs=array_diff_key($value,['task_value'=>0]);
                 if ($result){

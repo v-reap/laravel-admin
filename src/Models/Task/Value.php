@@ -19,6 +19,7 @@ class Value extends Model
 
     public $fillable = [
         'task_id',
+        'root_id',
         'attribute_id',
         'task_value'
     ];
@@ -30,6 +31,7 @@ class Value extends Model
      */
     protected $casts = [
         'task_id' => 'integer',
+        'root_id' => 'integer',
         'attribute_id' => 'integer',
         'task_value' => 'string'
     ];

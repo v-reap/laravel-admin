@@ -251,7 +251,8 @@ class Admin
                 $router->resource('auth/logs', 'LogController', ['only' => ['index', 'destroy']]);
                 $router->resource('tasks', 'TaskController');
                 $router->any('tasks/workflow/{id}', 'TaskController@workflow');
-                $router->any('report', 'TaskController@report');
+                $router->any('report/eav', 'TaskController@reportEav');
+                $router->any('report/schema', 'TaskController@reportSchema');
             });
 
             $router->any('test', 'TaskController@test');

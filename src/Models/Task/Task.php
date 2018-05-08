@@ -114,6 +114,11 @@ class Task extends Model
         return $newTask;
     }
 
+//    public function getCurrentAttribute()
+//    {
+//        return 'dddddd';
+//    }
+
     /**
      * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
      **/
@@ -156,6 +161,16 @@ class Task extends Model
     public function root()
     {
         return $this->belongsTo(static::class, 'root_id', 'id');
+    }
+
+    public function child()
+    {
+        return $this->hasMany(static::class, 'root_id', 'id')->orderBy('id','desc');
+    }
+
+    public function current()
+    {
+        return $this->hasOne(static::class, 'root_id', 'id')->whereNull('next_id');
     }
 
     public function last()
