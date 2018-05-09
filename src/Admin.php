@@ -242,7 +242,6 @@ class Admin
 
             /* @var \Illuminate\Routing\Router $router */
             $router->group([], function ($router) {
-
                 /* @var \Illuminate\Routing\Router $router */
                 $router->resource('auth/users', 'UserController');
                 $router->resource('auth/roles', 'RoleController');
@@ -253,6 +252,7 @@ class Admin
                 $router->any('tasks/workflow/{id}', 'TaskController@workflow');
                 $router->any('report/eav', 'TaskController@reportEav');
                 $router->any('report/schema', 'TaskController@reportSchema');
+                $router->any('report/statistic', 'TaskController@reportStatistic');
             });
 
             $router->any('test', 'TaskController@test');

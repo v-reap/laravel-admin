@@ -9,6 +9,7 @@ use Encore\Admin\Form;
 use Encore\Admin\Grid;
 use Encore\Admin\Layout\Content;
 use Encore\Admin\Models\Task\Attribute;
+use Encore\Admin\Models\Task\Report;
 use Encore\Admin\Models\Task\Status;
 use Encore\Admin\Models\Task\Type;
 use Encore\Admin\Models\Task\Task;
@@ -180,7 +181,7 @@ class TaskController extends Controller
                         $value = $values->first() ? $values->first()->getFieldHtml($attribute->list_field_html) : '';
                         return $value;
                     });//->editable($attribute->frontend_input)
-                if ($attribute->frontend_input=='text'){
+                if ($attribute->frontend_input=='text' && !$attribute->list_field_html){
                     $gData->limit(30);
                 }
             }
@@ -512,26 +513,160 @@ class TaskController extends Controller
                         $value = $values->first() ? $values->first()->getFieldHtml($attribute->list_field_html) : '';
                         return $value;
                     });
-                if ($attribute->frontend_input=='text'){
+                if ($attribute->frontend_input=='text' && !$attribute->list_field_html){
                     $gData->limit(30);
                 }
             }
         }
     }
 
+    public function reportStatistic()
+    {
+        $this->updateSchema(Input::get('type'));
+//        dd(Carbon::now()->startOfYear()->toDateTimeString());
+        return Admin::content(function (Content $content) {
+            $typeId = Input::get('type');
+            $from = Input::get('from') ? Input::get('from') : date("Y-m-d", (time()-3600*24*30)).' 00:00:00';
+            $to = Input::get('to') ? Input::get('to') : date("Y-m-d H:m:s", time());
+//        $typeList = $this->type->where('root_id',Input::get('type'))->get()->pluck('name','id');
+
+            $html = $this->toTable($this->statusReportSelect(
+                Carbon::now()->startOfWeek()->toDateTimeString(),Carbon::now()->endOfWeek()->toDateTimeString()),'本周项目汇总：');
+            $html .= $this->toTable($this->statusReportSelect(
+                Carbon::now()->startOfMonth()->toDateTimeString(),Carbon::now()->endOfMonth()->toDateTimeString()),'本月项目汇总：');
+            $html .= $this->toTable($this->statusReportSelect(
+                Carbon::now()->startOfYear()->toDateTimeString(),Carbon::now()->endOfYear()->toDateTimeString()),'本年项目汇总：');
+
+            $html .= $this->toTable($this->userReportSelect(
+                Carbon::now()->startOfWeek()->toDateTimeString(),Carbon::now()->endOfWeek()->toDateTimeString(),'<>'),'团队本周未完成项目：');
+            $html .= $this->toTable($this->userReportSelect(
+                Carbon::now()->startOfMonth()->toDateTimeString(),Carbon::now()->endOfMonth()->toDateTimeString(),'<>'),'团队本月未完成项目：');
+            $html .= $this->toTable($this->userReportSelect(
+                Carbon::now()->startOfYear()->toDateTimeString(),Carbon::now()->endOfYear()->toDateTimeString(),'<>'),'团队本年未完成项目：');
+
+            $html .= $this->toTable($this->userReportSelect(
+                Carbon::now()->startOfWeek()->toDateTimeString(),Carbon::now()->endOfWeek()->toDateTimeString()),'团队本周完成项目：');
+            $html .= $this->toTable($this->userReportSelect(
+                Carbon::now()->startOfMonth()->toDateTimeString(),Carbon::now()->endOfMonth()->toDateTimeString()),'团队本月完成项目：');
+            $html .= $this->toTable($this->userReportSelect(
+                Carbon::now()->startOfYear()->toDateTimeString(),Carbon::now()->endOfYear()->toDateTimeString()),'团队本年完成项目：');
+
+            $html .= $this->toTable(DB::select('SELECT admin_users.`name` as user_id, Sum(report2.price) AS price, Sum(report2.time_limit) AS time_limit, Count(report2.id) AS Sum FROM report2 INNER JOIN admin_users ON admin_users.id = report2.user_id  WHERE report2.status_id<>5  group by report2.user_id'),'未完成项目所处阶段：');
+
+
+            $content->header(trans('task.Reports').trans('task.Statistics'));
+            $content->description('...');
+            $content->body($html);
+        });
+    }
+
+    public function statusReportSelect($from,$to)
+    {
+        return DB::select('SELECT statuses.`name` as status_id, Sum(report2.price) AS price, Sum(report2.time_limit) AS time_limit, Count(report2.id) AS Sum FROM report2 INNER JOIN statuses ON statuses.id = report2.status_id WHERE report2.created_at >= \''.$from.'\' and report2.created_at < \''.$to.'\' group by report2.type_id');
+    }
+
+    public function userReportSelect($from,$to,$done='=')
+    {
+        return DB::select('SELECT admin_users.`name` as user_id, Sum(report2.price) AS price, Sum(report2.time_limit) AS time_limit, Count(report2.id) AS Sum FROM report2 INNER JOIN admin_users ON admin_users.id = report2.user_id  WHERE report2.status_id'.$done.'5 and report2.created_at >= \''.$from.'\' and report2.created_at < \''.$to.'\' group by report2.user_id');
+    }
+
+    public function toTable($taskArray,$title='')
+    {
+        $tableHtml = '';
+        if ($taskArray){
+            $tableHtml .= '<div class="col-md-4"><div class="box"><div class="box-header"><h3 class="box-title">'.$title.'</h3></div><div class="box-body no-padding">';
+            $tableHtml .= '<table class="table"><thead><tr>';
+            foreach($taskArray[0] as $tableHeader=>$notUsed){
+                $header = \Lang::has('task.'.$tableHeader) ? trans('task.'.$tableHeader) : $tableHeader;
+                $tableHtml .= '<th>'.$header.'</th>';
+            }
+            $tableHtml .= '</tr></thead>';
+
+            foreach($taskArray as $tableData){
+                $tableHtml .= '<tr>';
+                foreach($tableData as $tkey=>$tValue){
+                    $tableHtml .= '<td>'.$tValue.'</td>';
+                }
+                $tableHtml .= '</tr>';
+            }
+            $tableHtml .= '</table></div></div></div>';
+        }
+        return $tableHtml;
+    }
+
     public function reportSchema()
     {
-        $typeId = Input::get('type');
-        $this->updateSchema($typeId);
+        return Admin::content(function (Content $content) {
+            $content->header(trans('task.Reports'));
+            $content->description('...');
+            $content->body(Admin::grid(Report::class, function (Grid $grid) {
+                $adminUser = Admin::user();
+                if (!$adminUser->isAdministrator()){
+                    $userIds = Administrator::where('leader_id',$adminUser->id)->get()->pluck('id')->toArray();
+                    $userIds[] = $adminUser->id;
+                    $grid->model()->whereIn('user_id',$userIds);
+                }
+                $typeId = Input::get('type');
+//                $tableName = 'report'.$typeId;
+                $this->updateSchema($typeId);
+
+                $grid->id('ID')->sortable();
+                if ($adminUser->isAdministrator() || $adminUser->isLeader()){
+                    $grid->column('user.name',trans('task.user_id'));
+                }
+                $grid->column('created_at',trans('task.created_at'))->sortable();
+                $grid->column('type.name',trans('task.Current Task'));
+                $grid->column('status.name',trans('task.status_id'));//->sortable();
+                $grid->column('time_limit',trans('task.time_limit'))->sortable();
+                if (Admin::user()->can('tasks.price')){
+                    $grid->column('price',trans('task.price'))->sortable();
+                }
+
+                $attributes=$this->getAttrs4Report($typeId);
+                foreach($attributes as $attr) {
+                    if (!$attr->not_list){
+                        $gData = $grid->column('attr'.$attr->id, $attr->frontend_label)->display(function ($value) use ($attr) {
+                            return $attr->getListHtml($value);
+                        });
+                        if ($attr->frontend_input=='text' && !$attr->list_field_html){
+                            $gData->limit(30);
+                        }
+                    }
+                }
+//                $grid->column('title',trans('task.title'))->limit(30);//->editable('text')
+//                $grid->column('end_at',trans('task.end_at'))->sortable();//->editable('datetime')
+
+                $grid->disableRowSelector();
+                $grid->disableCreateButton();
+                $grid->disableActions();
+                $grid->filter(function ($filter) use ($attributes)  {
+                    $filter->equal('type_id',trans('task.type_id'))->select(Type::all()->pluck('name','id'));
+                    $filter->equal('status_id',trans('task.status_id'))->select(Status::all()->pluck('name','id'));
+                    $filter->equal('user_id',trans('task.user_id'))->select(Admin::user()->assignableUser());
+                    $filter->between('created_at',trans('task.created_at'))->datetime();
+                    foreach($attributes as $attr) {
+                        if($attr['frontend_input'] == 'select') {
+                            $option = explode('|',$attr['option']);
+                            $filter->equal('attr'.$attr->id, $attr->frontend_label)->select(array_combine($option,$option));
+                        } elseif ($attr['frontend_input'] == 'date') {
+                            $filter->between('attr'.$attr->id, $attr->frontend_label)->datetime();
+                        } else {
+                            $filter->like('attr'.$attr->id, $attr->frontend_label);
+                        }
+                    }
+                });
+            }));
+        });
 //        \DB::enableQueryLog();
-//        dd(DB::table($tableName)->join('tasks', $tableName.'.id', '=', 'tasks.id')->whereRaw($tableName.'.updated_at<tasks.updated_at')->get([$tableName.'.id'])->pluck('id'), \DB::getQueryLog());
+//        dd(Report::all()->toArray());
 //        $dbh->query("DESCRIBE tablename")->fetchAll();
     }
 
     public function updateSchema($typeId)
     {
         $tableName = 'report'.$typeId;
-        if (!Schema::hasTable($tableName)){
+
+        if (!Schema::hasTable($tableName)) {
             Schema::create($tableName, function($table) use ($typeId)
             {
                 $table->increments('id');
@@ -543,7 +678,7 @@ class TaskController extends Controller
                 $table->integer('status_id')->comment(trans('task.status_id'));
                 $table->integer('type_id')->comment(trans('task.type_id'));
                 $table->timestamps();
-                $attributes=Attribute::whereIn('type_id',($this->type->where('root_id',$typeId)->get(['id'])->pluck('id')))->get();
+                $attributes=$this->getAttrs4Report($typeId);
                 foreach($attributes as $attr) {
                     if (!$attr->not_report){
                         $table->string('attr'.$attr->id)->nullable()->comment($attr->frontend_label);
@@ -553,7 +688,7 @@ class TaskController extends Controller
         } else {
             Schema::table($tableName, function($table) use ($typeId)
             {
-                $attributes=Attribute::whereIn('type_id',($this->type->where('root_id',$typeId)->get(['id'])->pluck('id')))->get();
+                $attributes=$this->getAttrs4Report($typeId);
                 foreach($attributes as $attr) {
                     if (!$attr->not_report && !Schema::hasColumn($table->getTable(),'attr'.$attr->id)){
                         $table->string('attr'.$attr->id)->nullable()->comment($attr->frontend_label);
@@ -561,9 +696,15 @@ class TaskController extends Controller
                 }
             });
         }
+        $this->setReportData($typeId);
+    }
+
+    public function setReportData($typeId)
+    {
+        $tableName = 'report'.$typeId;
         $hasTasks = DB::table($tableName)->join('tasks', $tableName.'.id', '=', 'tasks.id')
             ->whereRaw($tableName.'.updated_at>tasks.updated_at')->get([$tableName.'.id'])->pluck('id');
-        $tasks = $this->task->whereNull('root_id')->where('type_id','=',$typeId)->whereNotIn('id',$hasTasks)
+        $tasks = $this->task->whereNull('root_id')->where('type_id','=',$typeId)->whereNotIn('id',$hasTasks)->with('current')
             ->with('allValue')->get(['id','title','time_limit','price','user_id','status_id','type_id','created_at'])->toArray();
         foreach ($tasks as $key=>$task) {
             if (isset($task['all_value'])) {
@@ -571,9 +712,16 @@ class TaskController extends Controller
                     $tasks[$key]['attr'.$item['attribute_id']]=$item['task_value'];
                 }
                 $tasks[$key]['updated_at'] = Carbon::now();
+                $tasks[$key]['type_id'] = isset($tasks[$key]['current']) ? $tasks[$key]['current']['type_id'] : $tasks[$key]['type_id'];
                 unset($tasks[$key]['all_value']);
+                unset($tasks[$key]['current']);
             }
-            $report = DB::table($tableName)->updateOrInsert(['id'=>$tasks[$key]['id']],$tasks[$key]);
+            DB::table($tableName)->updateOrInsert(['id'=>$tasks[$key]['id']],$tasks[$key]);
         }
+    }
+
+    public function getAttrs4Report($typeId)
+    {
+        return Attribute::whereIn('type_id',($this->type->where('root_id',$typeId)->get(['id'])->pluck('id')))->get();
     }
 }
