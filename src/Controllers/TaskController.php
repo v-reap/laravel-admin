@@ -538,11 +538,11 @@ class TaskController extends Controller
                 Carbon::now()->startOfYear()->toDateTimeString(),Carbon::now()->endOfYear()->toDateTimeString()),'本年项目汇总：');
 
             $html .= $this->toTable($this->userReportSelect(
-                Carbon::now()->startOfWeek()->toDateTimeString(),Carbon::now()->endOfWeek()->toDateTimeString(),'<>'),'团队本周未完成项目：');
+                Carbon::now()->startOfWeek()->toDateTimeString(),Carbon::now()->endOfWeek()->toDateTimeString(),'<>'),'团队本周待完成项目：');
             $html .= $this->toTable($this->userReportSelect(
-                Carbon::now()->startOfMonth()->toDateTimeString(),Carbon::now()->endOfMonth()->toDateTimeString(),'<>'),'团队本月未完成项目：');
+                Carbon::now()->startOfMonth()->toDateTimeString(),Carbon::now()->endOfMonth()->toDateTimeString(),'<>'),'团队本月待完成项目：');
             $html .= $this->toTable($this->userReportSelect(
-                Carbon::now()->startOfYear()->toDateTimeString(),Carbon::now()->endOfYear()->toDateTimeString(),'<>'),'团队本年未完成项目：');
+                Carbon::now()->startOfYear()->toDateTimeString(),Carbon::now()->endOfYear()->toDateTimeString(),'<>'),'团队本年待完成项目：');
 
             $html .= $this->toTable($this->userReportSelect(
                 Carbon::now()->startOfWeek()->toDateTimeString(),Carbon::now()->endOfWeek()->toDateTimeString()),'团队本周完成项目：');
@@ -551,7 +551,7 @@ class TaskController extends Controller
             $html .= $this->toTable($this->userReportSelect(
                 Carbon::now()->startOfYear()->toDateTimeString(),Carbon::now()->endOfYear()->toDateTimeString()),'团队本年完成项目：');
 
-            $html .= $this->toTable(DB::select('SELECT admin_users.`name` as user_id, Sum(report2.price) AS price, Sum(report2.time_limit) AS time_limit, Count(report2.id) AS Sum FROM report2 INNER JOIN admin_users ON admin_users.id = report2.user_id  WHERE report2.status_id<>5  group by report2.user_id'),'未完成项目所处阶段：');
+            $html .= $this->toTable(DB::select('SELECT users.`name` as user_id, types.`name` AS `Current Task`, Sum(report2.price) AS price, Sum(report2.time_limit) AS time_limit, Count(report2.id) AS Sum FROM report2 INNER JOIN types ON report2.type_id = types.id INNER JOIN users ON users.id = report2.user_id WHERE 	report2.status_id <> 5 GROUP BY 	report2.user_id, report2.type_id ORDER BY report2.user_id '),'未完成项目所处阶段：');
 
 
             $content->header(trans('task.Reports').trans('task.Statistics'));
@@ -640,9 +640,9 @@ class TaskController extends Controller
                 $grid->disableCreateButton();
                 $grid->disableActions();
                 $grid->filter(function ($filter) use ($attributes)  {
-                    $filter->equal('type_id',trans('task.type_id'))->select(Type::all()->pluck('name','id'));
-                    $filter->equal('status_id',trans('task.status_id'))->select(Status::all()->pluck('name','id'));
-                    $filter->equal('user_id',trans('task.user_id'))->select(Admin::user()->assignableUser());
+                    $filter->in('type_id',trans('task.type_id'))->multipleSelect(Type::all()->pluck('name','id'));
+                    $filter->in('status_id',trans('task.status_id'))->multipleSelect(Status::all()->pluck('name','id'));
+                    $filter->in('user_id',trans('task.user_id'))->multipleSelect(Admin::user()->assignableUser());
                     $filter->between('created_at',trans('task.created_at'))->datetime();
                     foreach($attributes as $attr) {
                         if($attr['frontend_input'] == 'select') {
