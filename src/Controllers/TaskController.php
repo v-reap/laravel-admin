@@ -642,11 +642,12 @@ class TaskController extends Controller
                 $grid->disableCreateButton();
                 $grid->disableActions();
                 $grid->filter(function ($filter) use ($attributes)  {
-                    $filter->in('type_id',trans('task.type_id'))->multipleSelect(Type::all()->pluck('name','id'));
+                    $filter->disableIdFilter();
+                    $filter->in('type_id',trans('task.type_id'))->multipleSelect(Type::where('root_id',Input::get('type'))->pluck('name','id'));
                     $filter->in('status_id',trans('task.status_id'))->multipleSelect(Status::all()->pluck('name','id'));
                     $filter->in('user_id',trans('task.user_id'))->multipleSelect(Admin::user()->assignableUser());
                     $filter->between('created_at',trans('task.created_at'))->datetime();
-                    foreach($attributes as $attr) {
+                    foreach($attributes->where('is_filter',1) as $attr) {
                         if($attr['frontend_input'] == 'select') {
                             $option = explode('|',$attr['option']);
                             $filter->equal('attr'.$attr->id, $attr->frontend_label)->select(array_combine($option,$option));
