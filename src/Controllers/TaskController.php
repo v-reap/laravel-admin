@@ -110,14 +110,9 @@ class TaskController extends Controller
     public function index()
     {
         return Admin::content(function (Content $content) {
-            $typeName=trans('task.Tasks');
-            try {
-                $typeName=$this->type->name;
-            } catch (Exception $e) {}
-
+            $typeName=$this->type->name ? $this->type->name : trans('task.Tasks');
             $content->header($typeName);
             $content->description('...');
-
             $content->body($this->grid()->render());
         });
     }
@@ -151,7 +146,7 @@ class TaskController extends Controller
     {
         $grid->id('ID')->sortable();
         $grid->column('status.name',trans('task.status_id'));//->sortable();
-        $grid->column('title',trans('task.title'))->limit(30);//->editable('text')
+        $grid->column('title',trans('task.title'))->limit(50);//->editable('text')
         $grid->column('end_at',trans('task.end_at'))->sortable();//->editable('datetime')
         if ($this->type && $this->type->id){
             $this->getColumnEAV($grid);
@@ -222,12 +217,13 @@ class TaskController extends Controller
     public function getFilter($grid)
     {
         $grid->filter(function ($filter)  {
-            if (!$this->type){
-                $filter->equal('type_id',trans('task.type_id'))->select(Type::all()->pluck('name','id'));
-            }
-            $filter->equal('status_id',trans('task.status_id'))->select(Status::all()->pluck('name','id'));
-            $filter->equal('user_id',trans('task.user_id'))->select(Admin::user()->assignableUser());
+            $filter->disableIdFilter();
             $filter->like('title',trans('task.title'));
+            if (!$this->type){
+                $filter->in('type_id',trans('task.type_id'))->multipleSelect(Type::where('root_id',Input::get('type'))->pluck('name','id'));
+            }
+            $filter->in('status_id',trans('task.status_id'))->multipleSelect(Status::all()->pluck('name','id'));
+            $filter->in('user_id',trans('task.user_id'))->multipleSelect(Admin::user()->assignableUser());
             $filter->between('end_at',trans('task.end_at'))->datetime();
             $filter->between('created_at',trans('task.created_at'))->datetime();
             $filter->between('updated_at',trans('task.updated_at'))->datetime();
@@ -598,28 +594,43 @@ class TaskController extends Controller
 
     public function reportSchema()
     {
+//        dd(Carbon::now()->diffInDays(Carbon::parse('2018-05-25 18:23:59')));
         return Admin::content(function (Content $content) {
-            $content->header(trans('task.Reports'));
+            $typeName=$this->type->name ? $this->type->name : trans('task.Tasks');
+            $content->header($typeName.trans('task.Reports'));
             $content->description('...');
             $content->body(Admin::grid(Report::class, function (Grid $grid) {
+                $typeId = Input::get('type');
+                $this->updateSchema($typeId);
                 $adminUser = Admin::user();
                 if (!$adminUser->isAdministrator()){
                     $userIds = Administrator::where('leader_id',$adminUser->id)->get()->pluck('id')->toArray();
                     $userIds[] = $adminUser->id;
                     $grid->model()->whereIn('user_id',$userIds);
                 }
-                $typeId = Input::get('type');
-//                $tableName = 'report'.$typeId;
-                $this->updateSchema($typeId);
 
                 $grid->id('ID')->sortable();
                 if ($adminUser->isAdministrator() || $adminUser->isLeader()){
                     $grid->column('user.name',trans('task.user_id'));
                 }
-                $grid->column('created_at',trans('task.created_at'))->sortable();
-                $grid->column('type.name',trans('task.Current Task'));
                 $grid->column('status.name',trans('task.status_id'));//->sortable();
+                $grid->column('type.name',trans('task.Current Task'));
+                $grid->column('created_at',trans('task.created_at'))->sortable();
                 $grid->column('time_limit',trans('task.time_limit'))->sortable();
+                $grid->column('end_at',trans('task.Time').trans('task.Rate'))->display(function($value) {
+                    $totalDays = Carbon::parse($this->created_at)->diffInDays($value,false);
+                    $pastDays = Carbon::now()->diffInDays($this->created_at);
+                    $percentage = number_format($pastDays/$totalDays*100);
+                    $progressHtml = '
+                        <div class="progress">
+                            <div class="progress-bar progress-bar-danger" role="progressbar"
+                                 aria-valuenow="60" aria-valuemin="0" aria-valuemax="100"
+                                 style="width: '.$percentage.'%;">
+                                <span class="sr-only">'.$percentage.'%'.'</span>
+                            </div>
+                        </div>';
+                    return $progressHtml;
+                });
                 if (Admin::user()->can('tasks.price')){
                     $grid->column('price',trans('task.price'))->sortable();
                 }
@@ -629,14 +640,13 @@ class TaskController extends Controller
                     if (!$attr->not_list){
                         $gData = $grid->column('attr'.$attr->id, $attr->frontend_label)->display(function ($value) use ($attr) {
                             return $attr->getListHtml($value);
-                        });
+                        })->sortable();
                         if ($attr->frontend_input=='text' && !$attr->list_field_html){
                             $gData->limit(30);
                         }
                     }
                 }
 //                $grid->column('title',trans('task.title'))->limit(30);//->editable('text')
-//                $grid->column('end_at',trans('task.end_at'))->sortable();//->editable('datetime')
 
                 $grid->disableRowSelector();
                 $grid->disableCreateButton();
@@ -705,10 +715,11 @@ class TaskController extends Controller
     public function setReportData($typeId)
     {
         $tableName = 'report'.$typeId;
+        DB::table($tableName)->whereIn('id',Task::onlyTrashed()->where('type_id',$typeId)->get(['id'])->pluck('id')->toArray())->delete();
         $hasTasks = DB::table($tableName)->join('tasks', $tableName.'.id', '=', 'tasks.id')
             ->whereRaw($tableName.'.updated_at>tasks.updated_at')->get([$tableName.'.id'])->pluck('id');
         $tasks = $this->task->whereNull('root_id')->where('type_id','=',$typeId)->whereNotIn('id',$hasTasks)->with('current')
-            ->with('allValue')->get(['id','title','time_limit','price','user_id','status_id','type_id','created_at'])->toArray();
+            ->with('allValue')->get(['id','title','time_limit','end_at','price','user_id','status_id','type_id','created_at'])->toArray();
         foreach ($tasks as $key=>$task) {
             if (isset($task['all_value'])) {
                 foreach ($task['all_value'] as $item) {

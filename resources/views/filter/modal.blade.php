@@ -14,6 +14,10 @@
                 <h4 class="modal-title" id="myModalLabel">{{ trans('admin.filter') }}</h4>
             </div>
             <form action="{!! $action !!}" method="get" pjax-container>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-primary submit">{{ trans('admin.submit') }}</button>
+                    <button type="reset" class="btn btn-warning pull-left">{{ trans('admin.reset') }}</button>
+                </div>
                 <div class="modal-body">
                     <div class="form">
                         @foreach($filters as $filter)
@@ -22,10 +26,6 @@
                             </div>
                         @endforeach
                     </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="submit" class="btn btn-primary submit">{{ trans('admin.submit') }}</button>
-                    <button type="reset" class="btn btn-warning pull-left">{{ trans('admin.reset') }}</button>
                 </div>
             </form>
         </div>
