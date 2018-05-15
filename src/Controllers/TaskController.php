@@ -727,4 +727,37 @@ class TaskController extends Controller
     {
         return Attribute::whereIn('type_id',($this->type->where('root_id',$typeId)->get(['id'])->pluck('id')))->get();
     }
+
+    public function destroy($id)
+    {
+        if ($this->delete($id)) {
+            return response()->json([
+                'status'  => true,
+                'message' => trans('admin.delete_succeeded'),
+            ]);
+        } else {
+            return response()->json([
+                'status'  => false,
+                'message' => trans('admin.delete_failed'),
+            ]);
+        }
+    }
+
+    public function delete($id)
+    {
+        $ids = explode(',', $id);
+
+        foreach ($ids as $id) {
+            if (empty($id)) {
+                continue;
+            }
+            $values = $this->task->find($id)->value;
+            foreach($values as $value){
+                $value->delete();
+            }
+            $this->task->find($id)->delete();
+        }
+
+        return true;
+    }
 }
