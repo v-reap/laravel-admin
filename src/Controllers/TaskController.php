@@ -14,6 +14,7 @@ use Encore\Admin\Models\Task\Status;
 use Encore\Admin\Models\Task\Type;
 use Encore\Admin\Models\Task\Task;
 use Encore\Admin\Controllers\ModelForm;
+use Encore\Admin\Grid\Exporters\TaskExporter;
 use Illuminate\Routing\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -53,7 +54,7 @@ class TaskController extends Controller
     public function test(Request $request)
     {
 
-        dd(Task::with('value')->get()->toArray());
+//        dd(Task::with('value')->get()->toArray());
 //        $task = Task::find(42517);
 //        dd($task->toArray());
 //        \DB::enableQueryLog();
@@ -613,20 +614,30 @@ class TaskController extends Controller
                 if ($adminUser->isAdministrator() || $adminUser->isLeader()){
                     $grid->column('user.name',trans('task.user_id'));
                 }
-                $grid->column('status.name',trans('task.status_id'));//->sortable();
-                $grid->column('type.name',trans('task.Current Task'));
+//                $grid->column('status.name',trans('task.status_id'));//->sortable();
+                $grid->column('type.name',trans('task.Current Task'))->display(function($value) {
+                    return '<span class="label label-default" style="color: '.$this->type['color'].';" >'.$value.'</span>';
+                });
                 $grid->column('created_at',trans('task.created_at'))->sortable();
                 $grid->column('time_limit',trans('task.time_limit'))->sortable();
                 $grid->column('end_at',trans('task.Time').trans('task.Rate'))->display(function($value) {
                     $totalDays = Carbon::parse($this->created_at)->diffInDays($value,false);
                     $pastDays = Carbon::now()->diffInDays($this->created_at);
+                    $leftDays = ($totalDays - $pastDays);
+                    $leftHtml = $leftDays>0 ? '剩余'.$leftDays.'天' : '逾期'.(-$leftDays).'天';
                     $percentage = number_format($pastDays/$totalDays*100);
+                    $statusHtml =  $pastDays/$totalDays>1 ? 'danger' : 'info';
+                    if ($this->status_id==5){
+                        $statusHtml =  'success';
+                        $leftDays = trans('task.Complete');
+                        $percentage = 100;
+                    }
                     $progressHtml = '
                         <div class="progress">
-                            <div class="progress-bar progress-bar-danger" role="progressbar"
+                            <div class="progress-bar progress-bar-'.$statusHtml.'" role="progressbar"
                                  aria-valuenow="60" aria-valuemin="0" aria-valuemax="100"
                                  style="width: '.$percentage.'%;">
-                                <span class="sr-only">'.$percentage.'%'.'</span>
+                                <span class="sr-only-" title="'.$leftHtml.'">'.$leftDays.'</span>
                             </div>
                         </div>';
                     return $progressHtml;
@@ -668,6 +679,7 @@ class TaskController extends Controller
                         }
                     }
                 });
+                $grid->exporter(new TaskExporter());
             }));
         });
 //        \DB::enableQueryLog();
