@@ -64,7 +64,9 @@ class TaskExporter extends AbstractExporter
                 continue;
             }
             if (substr($key,0,4)=='attr'){
-                $titles[]=$this->convTo(Attribute::find(substr($key,4))->frontend_label);
+                $attr = Attribute::find(substr($key,4));
+                $attrValue = $attr ? $attr->frontend_label : '';
+                $titles[]=$this->convTo($attrValue);
             }else{
                 $titles[]=$this->convTo(trans('task.'.$key));
             }

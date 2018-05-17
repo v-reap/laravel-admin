@@ -140,6 +140,7 @@ class TaskController extends Controller
             $this->getActions($grid);
             $this->getTools($grid);
             $this->getFilter($grid);
+            $grid->disableExport();
         });
     }
 
@@ -626,6 +627,7 @@ class TaskController extends Controller
                     $leftDays = ($totalDays - $pastDays);
                     $leftHtml = $leftDays>0 ? '剩余'.$leftDays.'天' : '逾期'.(-$leftDays).'天';
                     $percentage = number_format($pastDays/$totalDays*100);
+                    $percentage = $percentage>100 ? 100 : $percentage;
                     $statusHtml =  $pastDays/$totalDays>1 ? 'danger' : 'info';
                     if ($this->status_id==5){
                         $statusHtml =  'success';
