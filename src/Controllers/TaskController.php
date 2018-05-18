@@ -53,7 +53,8 @@ class TaskController extends Controller
 
     public function test(Request $request)
     {
-
+        dd(Admin::user()->name);
+        //wechat/login?oid=1&url=/admin/tasks/42627/edit
 //        dd(Task::with('value')->get()->toArray());
 //        $task = Task::find(42517);
 //        dd($task->toArray());

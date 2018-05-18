@@ -2,6 +2,7 @@
 
 namespace Encore\Admin\Models\Task;
 
+use Overtrue\LaravelWeChat\Facade as EasyWeChat;
 use Encore\Admin\Auth\Database\Administrator;
 use Encore\Admin\Facades\Admin;
 use Illuminate\Database\Eloquent\Model;
@@ -93,18 +94,25 @@ class Task extends Model
         \DB::beginTransaction();
         try {
             $baseTitle = $this->root_id ? $this->root->title : $this->title;
-            $newTask = Task::updateOrCreate(
-                ['id'=>$this->next_id],
-                [
-                    "title" => $baseTitle.' ('.Admin::user()->name.$title.')',
-                    "user_id" => $user_id,
-                    "status_id" => 1,
-                    "type_id" => $this->type->next_id,//$input['type']
-                    "root_id" => $this->root_id ? $this->root_id : $this->id,
-                    "last_id" => $this->id,
-                ]);
-            $this->next_id=$newTask->id;
-            $this->save();
+            $user = Administrator::find($user_id);
+            if ($user){
+                $newTask = Task::updateOrCreate(
+                    ['id'=>$this->next_id],
+                    [
+                        "title" => $baseTitle.' ('.Admin::user()->name.$title.')',
+                        "user_id" => $user_id,
+                        "status_id" => 1,
+                        "type_id" => $this->type->next_id,//$input['type']
+                        "root_id" => $this->root_id ? $this->root_id : $this->id,
+                        "last_id" => $this->id,
+                    ]);
+                $this->next_id=$newTask->id;
+                $this->save();
+                $message = '通知：'.Admin::user()->name.'提交了一个'.$this->type->name.'任务给您！<a href="'.env('APP_URL').
+                    '/wechat/login?oid=1&url=/admin/tasks/'.$newTask->id.'/edit" >任务详情</a>';
+                $officialAccount = EasyWeChat::officialAccount();
+                $officialAccount->customer_service->message($message)->to($user->wechat_id)->send();
+            }
         } catch (\Exception $e) {
             \DB::rollback();
             \Log::error($e);
