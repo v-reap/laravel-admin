@@ -182,7 +182,7 @@ class TaskController extends Controller
                         return $value;
                     });//->editable($attribute->frontend_input)
                 if ($attribute->frontend_input=='text' && !$attribute->list_field_html){
-                    $gData->limit(30);
+                    $gData->limit(50);
                 }
             }
         }
@@ -515,7 +515,7 @@ class TaskController extends Controller
                         return $value;
                     });
                 if ($attribute->frontend_input=='text' && !$attribute->list_field_html){
-                    $gData->limit(30);
+                    $gData->limit(50);
                 }
             }
         }
@@ -656,7 +656,7 @@ class TaskController extends Controller
                             return $attr->getListHtml($value);
                         })->sortable();
                         if ($attr->frontend_input=='text' && !$attr->list_field_html){
-                            $gData->limit(30);
+                            $gData->limit(50);
                         }
                     }
                 }

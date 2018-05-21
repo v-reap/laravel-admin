@@ -3,7 +3,6 @@
 namespace Encore\Admin\Models\Task;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
  * Class Tasktype_eav
@@ -12,27 +11,12 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  */
 class Activity extends Model
 {
-    use SoftDeletes;
-
-
-    protected $dates = ['deleted_at'];
-
 
     public $fillable = [
+        'name',
         'type_id',
-        'code',
-        'frontend_label',
-        'frontend_input',
-        'frontend_size',
-        'rules',
-        'not_list',
-        'is_required',
-        'is_unique',
-        'is_report',
-        'option',
+        'parent_id',
         'user_id',
-        'orderby',
-        'note'
     ];
 
     /**
@@ -41,20 +25,10 @@ class Activity extends Model
      * @var array
      */
     protected $casts = [
+        'name' => 'string',
         'type_id' => 'integer',
-        'code' => 'string',
-        'frontend_label' => 'string',
-        'frontend_input' => 'string',
-        'frontend_size' => 'integer',
-        'rules' => 'string',
-        'not_list' => 'integer',
-        'is_required' => 'integer',
-        'is_unique' => 'integer',
-        'is_report' => 'integer',
-        'option' => 'string',
-        'orderby' => 'integer',
-        'permission_id' => 'integer',
-        'note' => 'string'
+        'parent_id' => 'integer',
+        'user_id' => 'integer',
     ];
 
     /**
@@ -82,8 +56,13 @@ class Activity extends Model
         return $this->belongsTo(\Encore\Admin\Auth\Database\Administrator::class, 'user_id', 'id');
     }
 
-    public function value()
+    public function parent()
     {
-        return $this->hasMany(\Encore\Admin\Models\Task\Value::class, 'attribute_id', 'id');
+        return $this->hasMany(static::class, 'parent_id', 'id');
+    }
+
+    public function action()
+    {
+        return $this->hasMany(\Encore\Admin\Models\Task\Action::class, 'activity_id', 'id');
     }
 }

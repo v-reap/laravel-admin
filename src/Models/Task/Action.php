@@ -2,7 +2,6 @@
 namespace Encore\Admin\Models\Task;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
  * Class Tasktype_eav_value
@@ -11,16 +10,13 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  */
 class Action extends Model
 {
-    use SoftDeletes;
-    
-
-    protected $dates = ['deleted_at'];
-
 
     public $fillable = [
+        'title',
+        'activity_id',
+        'user_id',
         'task_id',
-        'attribute_id',
-        'task_value'
+        'is_done'
     ];
 
     /**
@@ -29,9 +25,11 @@ class Action extends Model
      * @var array
      */
     protected $casts = [
+        'title' => 'string',
+        'activity_id' => 'integer',
+        'user_id' => 'integer',
         'task_id' => 'integer',
-        'attribute_id' => 'integer',
-        'task_value' => 'string'
+        'is_done' => 'integer'
     ];
 
     /**
@@ -46,6 +44,11 @@ class Action extends Model
     /**
      * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
      **/
+    public function user()
+    {
+        return $this->belongsTo(\Encore\Admin\Auth\Database\Administrator::class, 'user_id', 'id');
+    }
+
     public function task()
     {
         return $this->belongsTo(\Encore\Admin\Models\Task\Task::class, 'task_id', 'id');
@@ -54,8 +57,8 @@ class Action extends Model
     /**
      * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
      **/
-    public function attribute()
+    public function activity()
     {
-        return $this->belongsTo(\Encore\Admin\Models\Task\Attribute::class, 'attribute_id', 'id');
+        return $this->belongsTo(\Encore\Admin\Models\Task\Activity::class, 'activity_id', 'id');
     }
 }

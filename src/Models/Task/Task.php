@@ -109,7 +109,9 @@ class Task extends Model
                 $this->next_id=$newTask->id;
                 $this->save();
                 $message = '通知：'.Admin::user()->name.'提交了一个任务('.$this->type->name.')给您！['.$newTask->title.']<a href="'.env('APP_URL').
-                    '/wechat/login?oid=1&url=/admin/tasks/'.$newTask->id.'/edit" >任务详情</a>';
+                    '/wechat/login?url=/admin/tasks/'.$newTask->id.'/edit" >任务详情</a>';
+                Action::updateOrCreate(["task_id"=>$newTask->id,"title"=>$message],
+                    ["title"=>$message, "activity_id"=>1, "user_id"=>$user_id, "task_id"=>$newTask->id, "is_done"=>1]);
                 $officialAccount = EasyWeChat::officialAccount();
                 $officialAccount->customer_service->message($message)->to($user->wechat_id)->send();
             }

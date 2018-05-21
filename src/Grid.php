@@ -497,10 +497,10 @@ class Grid
             return;
         }
 
+        $this->appendActionsColumn();
         $data = $this->processFilter();
 
         $this->prependRowSelectorColumn();
-        $this->appendActionsColumn();
 
         Column::setOriginalGridData($data);
 

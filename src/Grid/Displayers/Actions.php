@@ -154,7 +154,7 @@ class Actions extends AbstractDisplayer
     {
         return <<<EOT
 <a href="{$this->getResource()}/{$this->getKey()}/edit">
-    <i class="fa fa-edit"></i>
+    <i class="fa fa-edit fa-lg"></i>
 </a>
 EOT;
     }
@@ -214,7 +214,7 @@ SCRIPT;
 
         return <<<EOT
 <a href="javascript:void(0);" data-id="{$this->getKey()}" class="grid-row-delete">
-    <i class="fa fa-trash"></i>
+    <i class="fa fa-trash fa-lg"></i>
 </a>
 EOT;
     }
