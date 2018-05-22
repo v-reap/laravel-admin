@@ -106,14 +106,15 @@ class Task extends Model
                         "root_id" => $this->root_id ? $this->root_id : $this->id,
                         "last_id" => $this->id,
                     ]);
+                if (!$this->next_id){
+                    $message = '通知：'.Admin::user()->name.'提交了一个任务('.$this->type->name.')给您！['.$newTask->title.']<a href="'.env('APP_URL').
+                        '/wechat/login?url=/admin/tasks/'.$newTask->id.'/edit" >任务详情</a>';
+                    Action::create(["title"=>$message, "activity_id"=>1, "user_id"=>$user->id, "task_id"=>$newTask->id, "is_done"=>1]);
+                    $officialAccount = EasyWeChat::officialAccount();
+                    $officialAccount->customer_service->message($message)->to($user->wechat_id)->send();
+                }
                 $this->next_id=$newTask->id;
                 $this->save();
-                $message = '通知：'.Admin::user()->name.'提交了一个任务('.$this->type->name.')给您！['.$newTask->title.']<a href="'.env('APP_URL').
-                    '/wechat/login?url=/admin/tasks/'.$newTask->id.'/edit" >任务详情</a>';
-                Action::updateOrCreate(["task_id"=>$newTask->id,"title"=>$message],
-                    ["title"=>$message, "activity_id"=>1, "user_id"=>$user_id, "task_id"=>$newTask->id, "is_done"=>1]);
-                $officialAccount = EasyWeChat::officialAccount();
-                $officialAccount->customer_service->message($message)->to($user->wechat_id)->send();
             }
         } catch (\Exception $e) {
             \DB::rollback();
