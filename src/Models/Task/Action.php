@@ -16,6 +16,7 @@ class Action extends Model
         'activity_id',
         'user_id',
         'task_id',
+        'type_id',
         'is_done'
     ];
 
@@ -29,6 +30,7 @@ class Action extends Model
         'activity_id' => 'integer',
         'user_id' => 'integer',
         'task_id' => 'integer',
+        'type_id' => 'integer',
         'is_done' => 'integer'
     ];
 
@@ -60,5 +62,13 @@ class Action extends Model
     public function activity()
     {
         return $this->belongsTo(\Encore\Admin\Models\Task\Activity::class, 'activity_id', 'id');
+    }
+
+    /**
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
+     **/
+    public function type()
+    {
+        return $this->belongsTo(Type::class, 'type_id', 'id');
     }
 }
