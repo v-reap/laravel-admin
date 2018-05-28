@@ -248,7 +248,9 @@ class Admin
                 $router->resource('auth/permissions', 'PermissionController');
                 $router->resource('auth/menu', 'MenuController', ['except' => ['create']]);
                 $router->resource('auth/logs', 'LogController', ['only' => ['index', 'destroy']]);
-                $router->resource('tasks', 'TaskController');
+                $router->resource('bpmn/workflow', 'WorkflowController');
+                $router->resource('bpmn/process', 'ProcessController');
+                $router->resource('bpmn/processitem', 'ProcessItemController');
                 $router->any('tasks/workflow/{id}', 'TaskController@workflow');
                 $router->any('report/eav', 'TaskController@reportEav');
                 $router->any('report/schema', 'TaskController@reportSchema');
