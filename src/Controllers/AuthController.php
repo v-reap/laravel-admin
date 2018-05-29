@@ -49,7 +49,7 @@ class AuthController extends Controller
         if (Auth::guard('admin')->attempt($credentials)) {
             admin_toastr(trans('admin.login_successful'));
 
-            return redirect()->intended(config('admin.route.prefix'));
+            return redirect('admin/tasks');
         }
 
         return Redirect::back()->withInput()->withErrors(['username' => $this->getFailedLoginMessage()]);

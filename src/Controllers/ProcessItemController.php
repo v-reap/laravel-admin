@@ -21,7 +21,7 @@ class ProcessItemController extends Controller
     public function index()
     {
         return Admin::content(function (Content $content) {
-            $content->header(trans('workflow.Workflow'));
+            $content->header(trans('workflow.Process Item'));
             $content->description(trans('admin.list'));
             $content->body($this->grid()->render());
         });
@@ -37,7 +37,7 @@ class ProcessItemController extends Controller
     public function edit($id)
     {
         return Admin::content(function (Content $content) use ($id) {
-            $content->header(trans('workflow.Workflow'));
+            $content->header(trans('workflow.Process Item'));
             $content->description(trans('admin.edit'));
             $content->body($this->form()->edit($id));
         });
@@ -51,7 +51,7 @@ class ProcessItemController extends Controller
     public function create()
     {
         return Admin::content(function (Content $content) {
-            $content->header(trans('workflow.Workflow'));
+            $content->header(trans('workflow.Process Item'));
             $content->description(trans('admin.create'));
             $content->body($this->form());
         });

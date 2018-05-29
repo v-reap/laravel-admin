@@ -6,6 +6,7 @@ use Encore\Admin\Facades\Admin;
 use Encore\Admin\Form;
 use Encore\Admin\Grid;
 use Encore\Admin\Layout\Content;
+use Encore\Admin\Models\Task\Type;
 use Encore\Admin\Models\Workflow\Workflow;
 use Illuminate\Routing\Controller;
 
@@ -86,13 +87,14 @@ class WorkflowController extends Controller
         return Admin::form(Workflow::class, function (Form $form) {
             $form->display('id', 'ID');
 
-            $form->text('type_id',trans('workflow.type_id'))->rules('required');
+            $form->select('type.name',trans('workflow.type_id'))
+                ->options(Type::all()->pluck('name','id'))->rules('required');
             $form->text('name',trans('workflow.name'))->rules('required');
-            $form->text('bpmn',trans('workflow.bpmn'))->rules('required');
-            $form->text('version',trans('workflow.version'))->rules('required');
-            $form->text('user_id',trans('workflow.user_id'))->rules('required');
+            $form->mobile('version',trans('workflow.version'))->options(['mask' => '9.99.99'])->rules('required');
+            $form->hidden('user_id', trans('task.user_id'))->value(Admin::user()->id);
             $form->display('created_at', trans('admin.created_at'));
             $form->display('updated_at', trans('admin.updated_at'));
+            $form->bpmn('bpmn',trans('workflow.bpmn'))->rules('required');
 
         });
     }

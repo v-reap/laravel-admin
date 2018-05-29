@@ -1307,6 +1307,7 @@ class Form
             'multipleImage'  => \Encore\Admin\Form\Field\MultipleImage::class,
             'captcha'        => \Encore\Admin\Form\Field\Captcha::class,
             'listbox'        => \Encore\Admin\Form\Field\Listbox::class,
+            'bpmn'        => \Encore\Admin\Form\Field\Bpmn::class,
             'eav'            => \Encore\Admin\Form\Field\Eav::class,
         ];
 

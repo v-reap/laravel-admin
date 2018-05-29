@@ -147,7 +147,7 @@ class TaskController extends Controller
 
     public function getColumns($grid)
     {
-        $grid->id('ID')->sortable();
+//        $grid->id('ID')->sortable();
         $grid->column('status.name',trans('task.status_id'));//->sortable();
         $grid->column('title',trans('task.title'))->limit(50);//->editable('text')
         $grid->column('end_at',trans('task.end_at'))->sortable();//->editable('datetime')
@@ -156,15 +156,15 @@ class TaskController extends Controller
         }else{
             $grid->column('type.name',trans('task.type_id'));
         }
-        $grid->column('time_limit',trans('task.time_limit'))->sortable();
+//        $grid->column('time_limit',trans('task.time_limit'))->sortable();
         if (Admin::user()->can('tasks.price')){
             $grid->column('price',trans('task.price'))->sortable();
         }
         if (Admin::user()->isAdministrator() || Admin::user()->isLeader()){
             $grid->column('user.name',trans('task.user_id'));
         }
-        $grid->column('created_at',trans('task.created_at'))->sortable();
-        $grid->column('updated_at',trans('task.updated_at'))->sortable();
+//        $grid->column('created_at',trans('task.created_at'))->sortable();
+//        $grid->column('updated_at',trans('task.updated_at'))->sortable();
     }
 
     public function getColumnEAV($grid)
@@ -208,7 +208,13 @@ class TaskController extends Controller
             });
         }
         if ($this->type && $this->type->next){
-            $grid->setActionAttrs($this->type->next->name,Admin::user()->assignableUser(),$this->type->assigned_to);
+            $assigned_to = (Admin::user()->assignableUser());
+            unset($assigned_to[Admin::user()->id]);
+            $userAss = Administrator::find($this->type->assigned_to);
+            if ($userAss){
+                $assigned_to[$userAss->id] = $userAss->name;
+            }
+            $grid->setActionAttrs($this->type->next->name,$assigned_to,$this->type->assigned_to);
             $grid->tools(function ($tools) {
                 $tools->batch(function ($batch) {
                     $batch->add($this->type->next->name, new Grid\Tools\BatchWorkflow($this->type->next->id));
@@ -438,12 +444,12 @@ class TaskController extends Controller
                     $option = explode('|',$attribute['option']);
                     $attField = $attField->options(array_combine($option,$option));
                 }
-                if($task){
-                    $value=$task->value->where('attribute_id','=',$attribute['id'])->first();
-                    $attField = $value ? $attField->value($value->task_value) : $attField;
-                }
                 if($attribute['rules']) {
                     $attField = $attField->attribute('required','required');
+                }
+                if($task){
+                    $value=$task->value->where('attribute_id','=',$attribute['id'])->first();
+                    $attField = $value && $value->task_value ? $attField->value($value->task_value) : $attField;
                 }
             }else{
                 $value=$task->value->where('attribute_id','=',$attribute['id'])->first();
@@ -612,7 +618,7 @@ class TaskController extends Controller
                     $grid->model()->whereIn('user_id',$userIds);
                 }
 
-                $grid->id('ID')->sortable();
+//                $grid->id('ID')->sortable();
                 if ($adminUser->isAdministrator() || $adminUser->isLeader()){
                     $grid->column('user.name',trans('task.user_id'));
                 }
@@ -664,7 +670,11 @@ class TaskController extends Controller
 
                 $grid->disableRowSelector();
                 $grid->disableCreateButton();
-                $grid->disableActions();
+                $grid->actions(function ($actions) {
+                    $actions->disableDelete();
+                    $actions->disableEdit();
+                });
+//                $grid->disableActions();
                 $grid->filter(function ($filter) use ($attributes)  {
                     $filter->disableIdFilter();
                     $filter->in('type_id',trans('task.type_id'))->multipleSelect(Type::where('root_id',Input::get('type'))->pluck('name','id'));

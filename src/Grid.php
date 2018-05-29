@@ -497,8 +497,8 @@ class Grid
             return;
         }
 
-        $this->appendActionsColumn();
         $data = $this->processFilter();
+        $this->appendActionsColumn();
 
         $this->prependRowSelectorColumn();
 
