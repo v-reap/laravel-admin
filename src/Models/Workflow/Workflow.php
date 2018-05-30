@@ -43,6 +43,11 @@ class Workflow extends Model
         
     ];
 
+//    public function setBpmnAttribute($value)
+//    {
+//        $this->attributes['bpmn'] = urldecode($value);
+//    }
+
     /**
      * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
      **/
@@ -56,6 +61,6 @@ class Workflow extends Model
      **/
     public function type()
     {
-        return $this->belongsTo(Type::class, 'type_id', 'id');
+        return $this->belongsTo(\Encore\Admin\Models\Task\Type::class, 'type_id', 'id');
     }
 }

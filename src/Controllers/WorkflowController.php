@@ -69,7 +69,7 @@ class WorkflowController extends Controller
             $grid->id('ID')->sortable();
             $grid->column('type_id',trans('workflow.type_id'));
             $grid->column('name',trans('workflow.name'));
-            $grid->column('bpmn',trans('workflow.bpmn'));
+//            $grid->column('bpmn',trans('workflow.bpmn'));
             $grid->column('version',trans('workflow.version'));
             $grid->column('user_id',trans('workflow.user_id'));
             $grid->created_at(trans('admin.created_at'));
@@ -86,8 +86,7 @@ class WorkflowController extends Controller
     {
         return Admin::form(Workflow::class, function (Form $form) {
             $form->display('id', 'ID');
-
-            $form->select('type.name',trans('workflow.type_id'))
+            $form->select('type_id',trans('workflow.type_id'))
                 ->options(Type::all()->pluck('name','id'))->rules('required');
             $form->text('name',trans('workflow.name'))->rules('required');
             $form->mobile('version',trans('workflow.version'))->options(['mask' => '9.99.99'])->rules('required');
