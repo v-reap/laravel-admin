@@ -365,40 +365,6 @@ class TaskController extends Controller
 
     public function getOnSaveForm($form)
     {
-//        $rule1 = [
-//            'saving'=>[
-//                'if_key'=>'status_id',
-//                'if_con'=>'==',
-//                'if_value'=>5,
-//                'error'=>[
-//                    'title'   => '提交失败',
-//                    'message' => '已完成任务无法修改，请联系系统管理员！',
-//                ]
-//            ]
-//        ];
-//        $rule2 = [
-//            'saved'=>[
-//                'if'=>[
-//                    [
-//                        'key'=>'status_id',
-//                        'con'=>'==',
-//                        'value'=>5,
-//                    ],
-//                    [
-//                        'key'=>'type.next',
-//                        'con'=>'>',
-//                        'value'=>0,
-//                    ],
-//                ],
-//                'action' => [
-//                    'saveAssign'=>['user_id','系统自动分配:'],
-//                ],
-//                'success'=>[
-//                    'title'   => '提交成功',
-//                    'message' => '系统将自动分配到下一个任务环节！',
-//                ]
-//            ]
-//        ];
         $form->saving(function ($form) {
             if ($form->model()->status_id==5){
                 $error = new MessageBag([
@@ -407,33 +373,6 @@ class TaskController extends Controller
                 ]);
                 return back()->with(compact('error'));
             }
-//            $attrs = $form->model()->type->attribute->where('is_unique',1);
-//            foreach($attrs as $attr){
-//                $skuValue = $form->model()->value->where('attribute_id',$attr->id)->first();
-//                \Log::debug($skuValue);
-//                $sku = $skuValue->task_value;
-//                \Log::debug($sku);
-//                $notUnique = (\Encore\Admin\Models\Task\Value::where('id','<>',$skuValue->id)
-//                    ->where('attribute_id',$attr->id)->where('task_value',$sku)->first());
-//                if (!$notUnique){
-//                    $error = new MessageBag([
-//                        'title'   => '提交失败',
-//                        'message' => $attr->frontend_label.'不可重复，该'.$attr->frontend_label.'已存在！',
-//                    ]);
-//                    return back()->with(compact('error'));
-//                }
-//            }
-//            $skuValue = $form->model()->value->where('attribute_id',534)->first();
-//            $sku = $skuValue->task_value;
-//            $notUnique = (\Encore\Admin\Models\Task\Value::where('id','<>',$skuValue->id)
-//                ->where('attribute_id',534)->where('task_value',$sku)->first());
-//            if ($notUnique){
-//                $error = new MessageBag([
-//                    'title'   => '提交失败',
-//                    'message' => '不可重复，该'.'已存在！',
-//                ]);
-//                return back()->with(compact('error'));
-//            }
         });
         $form->saved(function ($form) {
             $message = '';
