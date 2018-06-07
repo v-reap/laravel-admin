@@ -36,7 +36,9 @@ class Administrator extends Model implements AuthenticatableContract
 
     public function assignableUser()
     {
-        return $this->getTeamUser()->first() ? $this->getTeamUser()->first() : [$this->id=>$this->name,];
+        $team = $this->where('leader_id','=',$this->leader_id)->pluck('name','id');
+        return $team;
+//        return $this->getTeamUser()->first() ? $this->getTeamUser()->first() : [$this->id=>$this->name,];
     }
 
     public function getTeamUser()

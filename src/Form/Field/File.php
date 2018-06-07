@@ -125,7 +125,7 @@ class File extends Field
 
         $this->destroy();
 
-        return $path;
+        return \Storage::disk(config('admin.upload.disk'))->url($path);
     }
 
     /**

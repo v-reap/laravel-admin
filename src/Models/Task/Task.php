@@ -8,6 +8,7 @@ use Encore\Admin\Facades\Admin;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\MessageBag;
 //use Illuminate\Support\Facades\DB;
 //use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 //use Illuminate\Http\Request;
@@ -241,6 +242,23 @@ class Task extends Model
     protected static function boot()
     {
         parent::boot();
+
+//        static::saving(function ($model) {
+//            $attrs = $model->type->attribute->where('is_unique',1);
+//            foreach($attrs as $attr){
+//                $skuValue = $model->value->where('attribute_id',$attr->id)->first();
+//                $sku = $skuValue->task_value;
+//                $notUnique = (\Encore\Admin\Models\Task\Value::where('id','<>',$skuValue->id)
+//                    ->where('attribute_id',$attr->id)->where('task_value',$sku)->first());
+//                if ($notUnique){
+//                    $error = new MessageBag([
+//                        'title'   => '提交失败',
+//                        'message' => $attr->frontend_label.'不可重复，该'.$attr->frontend_label.'已存在！',
+//                    ]);
+//                    return back()->with(compact('error'));
+//                }
+//            }
+//        });
 
         static::addGlobalScope('user_id', function(Builder $builder) {
 //            $user = Admin::user();

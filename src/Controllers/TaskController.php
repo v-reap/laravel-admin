@@ -149,6 +149,12 @@ class TaskController extends Controller
     {
 //        $grid->id('ID')->sortable();
         $grid->column('status.name',trans('task.status_id'));//->sortable();
+
+        if ($this->isComplete<>5){
+            $grid->column('assigned',trans('task.Current Task'))->display(function($value) {
+                return $this->next_id ? '已派'.$this->next->type->name.'('.$this->next->user->name.')' : '待分派';
+            });
+        }
         $grid->column('title',trans('task.title'))->limit(50);//->editable('text')
         $grid->column('end_at',trans('task.end_at'))->sortable();//->editable('datetime')
         if ($this->type && $this->type->id){
@@ -305,6 +311,7 @@ class TaskController extends Controller
                 $form->currency('price', trans('task.price'))->symbol('￥');
             }
             $form->datetime('end_at', trans('task.end_at'))->default(Carbon::now())->rules('required');
+            $form->display('created_at', trans('task.created_at'));
             $isReadOnly = false;//$this->task ? !(Admin::user()->id==$this->task->user_id || Admin::user()->isAdministrator()):false;
             $this->getEAVFieldForm($form,$this->task,$this->type,$isReadOnly);
             $this->getStatusField($form);
@@ -400,6 +407,33 @@ class TaskController extends Controller
                 ]);
                 return back()->with(compact('error'));
             }
+//            $attrs = $form->model()->type->attribute->where('is_unique',1);
+//            foreach($attrs as $attr){
+//                $skuValue = $form->model()->value->where('attribute_id',$attr->id)->first();
+//                \Log::debug($skuValue);
+//                $sku = $skuValue->task_value;
+//                \Log::debug($sku);
+//                $notUnique = (\Encore\Admin\Models\Task\Value::where('id','<>',$skuValue->id)
+//                    ->where('attribute_id',$attr->id)->where('task_value',$sku)->first());
+//                if (!$notUnique){
+//                    $error = new MessageBag([
+//                        'title'   => '提交失败',
+//                        'message' => $attr->frontend_label.'不可重复，该'.$attr->frontend_label.'已存在！',
+//                    ]);
+//                    return back()->with(compact('error'));
+//                }
+//            }
+//            $skuValue = $form->model()->value->where('attribute_id',534)->first();
+//            $sku = $skuValue->task_value;
+//            $notUnique = (\Encore\Admin\Models\Task\Value::where('id','<>',$skuValue->id)
+//                ->where('attribute_id',534)->where('task_value',$sku)->first());
+//            if ($notUnique){
+//                $error = new MessageBag([
+//                    'title'   => '提交失败',
+//                    'message' => '不可重复，该'.'已存在！',
+//                ]);
+//                return back()->with(compact('error'));
+//            }
         });
         $form->saved(function ($form) {
             $message = '';
@@ -618,7 +652,7 @@ class TaskController extends Controller
                     $grid->model()->whereIn('user_id',$userIds);
                 }
 
-//                $grid->id('ID')->sortable();
+                $grid->id('ID')->sortable();
                 if ($adminUser->isAdministrator() || $adminUser->isLeader()){
                     $grid->column('user.name',trans('task.user_id'));
                 }
