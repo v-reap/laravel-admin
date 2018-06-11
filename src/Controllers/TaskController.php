@@ -485,7 +485,7 @@ class TaskController extends Controller
         $grid->column('created_at',trans('task.created_at'))->sortable();
         $grid->column('updated_at',trans('task.updated_at'))->sortable();
 
-        $attributes=Attribute::whereIn('type_id',($this->type->where('root_id',$typeId)->get(['id'])->pluck('id')))->get();
+        $attributes=Attribute::whereIn('type_id',($this->type->where('root_id',$typeId)->get(['id'])->pluck('id')))->orderBy('orderby')->get();
         $grid->model()->whereNull('root_id')->where('type_id','=',$typeId);
         foreach ($attributes as $attribute) {
             if (!$attribute->not_list){
@@ -736,7 +736,7 @@ class TaskController extends Controller
 
     public function getAttrs4Report($typeId)
     {
-        return Attribute::whereIn('type_id',($this->type->where('root_id',$typeId)->get(['id'])->pluck('id')))->get();
+        return Attribute::whereIn('type_id',($this->type->where('root_id',$typeId)->get(['id'])->pluck('id')))->orderBy('orderby')->get();
     }
 
     public function destroy($id)
