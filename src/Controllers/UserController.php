@@ -71,6 +71,7 @@ class UserController extends Controller
             $grid->username(trans('admin.username'));
             $grid->name(trans('admin.name'));
             $grid->roles(trans('admin.roles'))->pluck('name')->label();
+            $grid->column('leader.name',trans('task.leader'));
             $grid->created_at(trans('admin.created_at'));
             $grid->updated_at(trans('admin.updated_at'));
 
@@ -111,6 +112,7 @@ class UserController extends Controller
 
             $form->multipleSelect('roles', trans('admin.roles'))->options(Role::all()->pluck('name', 'id'));
             $form->multipleSelect('permissions', trans('admin.permissions'))->options(Permission::all()->pluck('name', 'id'));
+            $form->select('leader_id',trans('task.leader'))->options(Administrator::all()->pluck('name', 'id'))->rules('required');
 
             $form->display('created_at', trans('admin.created_at'));
             $form->display('updated_at', trans('admin.updated_at'));

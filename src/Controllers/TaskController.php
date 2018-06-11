@@ -317,9 +317,11 @@ class TaskController extends Controller
             $this->getStatusField($form);
         });
         foreach ($this->lastTasks as $lastTask) {
-            $form->tab($lastTask->type->name, function ($form) use ($lastTask) {
-                $this->getEAVFieldForm($form,$lastTask,$lastTask->type,true);
-            });
+            if ($lastTask->value->toArray()){
+                $form->tab($lastTask->type->name, function ($form) use ($lastTask) {
+                    $this->getEAVFieldForm($form,$lastTask,$lastTask->type,true);
+                });
+            }
         }
     }
 
@@ -417,7 +419,7 @@ class TaskController extends Controller
                     $option = explode('|',$attribute['option']);
                     $attField = $attField->options(array_combine($option,$option));
                 }
-                if($attribute['rules']) {
+                if($attribute['is_required']) {
                     $attField = $attField->attribute('required','required');
                 }
                 if($task){
