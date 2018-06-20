@@ -605,6 +605,7 @@ class TaskController extends Controller
                 $grid->column('time_limit',trans('task.time_limit'))->sortable();
                 $grid->column('end_at',trans('task.Time').trans('task.Rate'))->display(function($value) {
                     $totalDays = Carbon::parse($this->created_at)->diffInDays($value,false);
+                    $totalDays = $totalDays==0 ? 1 : $totalDays;
                     $pastDays = Carbon::now()->diffInDays($this->created_at);
                     $leftDays = ($totalDays - $pastDays);
                     $leftHtml = $leftDays>0 ? '剩余'.$leftDays.'天' : '逾期'.(-$leftDays).'天';
