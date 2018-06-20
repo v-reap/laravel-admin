@@ -268,7 +268,7 @@ class Task extends Model
 //            else if (1){
 //                $builder->whereIn('user_id', $user);
 //            }
-            $builder->orderBy('created_at', 'desc');
+            $builder->orderBy('id', 'desc');
         });
     }
 }
