@@ -360,7 +360,7 @@ class TaskController extends Controller
             $form->hidden('status_id', trans('task.status_id'))->value(1);
         }
         if ($this->type->is_custom_assignable){
-            $form->select('custom_assigned_to', trans('task.assigned_to'))->options(Admin::user()->assignableUser())->attribute('required','required')->default(Admin::user()->id);
+            $form->select('custom_assigned_to', trans('task.assigned_to'))->options(Admin::user()->assignableUser())->attribute('required','required')->default(Admin::user()->id); 
             $form->ignore(['custom_assigned_to']);
         }
     }
