@@ -152,7 +152,7 @@ class TaskController extends Controller
 
         if ($this->isComplete<>5){
             $grid->column('assigned',trans('task.Current Task'))->display(function($value) {
-                return '已派'.$this->next->type->name.'('.$this->next->user->name.')' ?? '待分派';
+                return $this->next ? '已派'.$this->next->type->name.'('.$this->next->user->name.')' : '待分派';
             });
         }
         $grid->column('title',trans('task.title'))->limit(50);//->editable('text')
